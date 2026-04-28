@@ -1,0 +1,159 @@
+defaults:
+  - _self_
+
+all_args:
+  algorithm_name: "macmat"           # options: amat, macmat, ft_rrt, ft_nearest, ft_apf, ft_utility, ft_voronoi
+  experiment_name: "Target_Driven_Navigation"
+  seed: 2
+  use_eval: false
+  use_render: false
+  cuda: true
+  cuda_deterministic: true
+  n_training_threads: 16
+  n_rollout_threads: 64
+  n_eval_rollout_threads: 1
+  n_render_rollout_threads: 1
+  num_env_steps: 384000000                        # 10e6 steps (as int)
+  user_name: "mylad"                              # for wandb usage
+  wandb_name: "mylad"
+  use_wandb: true
+  render_episodes: 40
+  eval_episodes: 100
+  max_steps: 300
+  episode_length: 200                             # default value 200 but changes in the train script
+  asynch: true
+  save_interval: 1
+  log_interval: 1                                 # default value 5
+  eval_interval: 25
+  run_id: 1.00                                    # this is to better keep track of runs in wandb
+  exploration_only: false                         # if True, the mission is to explore the environment only, no targets to find
+  
+  # Training parameters
+  lr: 1e-4
+  rnn_lr: 1e-4
+  use_linear_lr_decay: true
+  lr_warmup: 250                                 # Number of episodes to warm up the learning rate (set to null for no warmup)
+  use_linear_entropy_decay: True
+  opti_eps: 1e-5                                  # RMSprop optimizer epsilon (default: 1e-5)
+  tau: 0.995                                      # soft update polyak (default: 0.995)
+  weight_decay: 1e-5                              # weight decay for the optimizer #TODO: test 1e-5 or 1e-4
+  use_centralized_training: true                  # considers all agents' observations when training
+
+  # Resuming a run
+  resume_run_with_id: false                       # either false or "run id". example: "lnofbid5"
+  fork_run_with_id: false
+  starting_episode: 0                        # used when resuming training to set the correct time step
+
+  # PPO parameters
+  ppo_epoch: 5                                     # number of ppo epochs
+  entropy_coef: 0.02                              # entropy term coefficient
+  use_policy_vhead: false                          # 
+  use_clipped_value_loss: true                     # 
+  clip_param: 0.2                                  # ppo clip parameter
+  num_mini_batch: 1                                # number of mini-batches for PPO
+  policy_value_loss_coef: 1                        # policy value loss coefficient
+  value_loss_coef: 1                               # value loss coefficient
+  use_max_grad_norm: true                          # by default, use max norm of gradients
+  max_grad_norm: 2                                 # max norm of gradients
+  use_gae: true                                    # use generalized advantage estimation (default True)
+  gamma: 0.999                                         # discount factor for rewards
+  gae_lambda: 0.95                                 # GAE lambda parameter
+  use_proper_time_limits: false                    # compute returns taking into account time limits
+  use_huber_loss: true                             # by default, use huber loss
+  use_value_active_masks: true                     # mask useless data in value loss
+  use_policy_active_masks: true                    # mask useless data in policy loss
+  huber_delta: 10.0                                # coefficient of huber loss
+
+  # Communication parameters
+  use_partial_comm: false                          # The communication degrades with distance
+  use_full_comm: true                             # the communication graph is fully connected
+  comm_sigma: 5                                    # standard deviation of the communication probabilty
+  comm_radius: 10                                  # communication cutoff radius    
+  use_graph_attention: true                      # Ablation: disabling sequential decision-making and graph attention during training (and eval of corresponding models)
+  use_graph_attention_eval: false                 # Ablation: disabling sequential decision-making and graph attention during eval of models trained with it
+  use_classbased_action: true                     # Ablation: whether to use the ClassBasedAction module or agent indication
+
+  # Target and Obstacle parameters
+  dynamic_targets: false
+  target_behavior: "default"                       # options: default, hyperT
+  dynamic_obstacles: false
+  obstacle_behavior: "random"                     # options: oscillate, random
+
+  # Network parameters
+  hidden_size: 128                                 # hidden size
+  recurrent_hidden_size: 128                       # recurrent hidden size
+  encode_state: false                              # default is False
+  n_block: 1                                       # number of blocks
+  n_embd: 128                                      # embedding size
+  n_embd_vit: 48                                   # embedding size for vision transformer
+  n_head: 2                                        # number of heads
+  dec_actor: false                                 # default is False
+  share_actor: false                               # default is False
+  use_popart: false                                # Use PopArt to normalize rewards
+  use_valuenorm: true                              # Use running mean and std to normalize rewards
+  use_feature_normalization: true                  # Apply layernorm to the inputs
+  use_orthogonal: true                             # Use Orthogonal initialization for weights and 0 initialization for biases
+  use_rnn: true                                    # Use RNN in the encoder
+  rnn_type: "MixedNCP"                                 # RNN type: LSTM, GRU, CfC, MixedCfC, NCP, MixedNCP, None
+  
+  # Environment and specific render parameters
+  env_name: "GridWorld"
+  scenario_name: "MiniGrid-SearchAndRescue-v0"
+  num_agents: 4
+  n_agent_types: 2
+  # agent_classes_list: [0, 1, 2] # 0 - rescuer, 1 - scout, 2 - cleaner
+  # agent_classes_list: [0, 1, 2, 210] # 0 - rescuer, 1 - scout, 2 - cleaner, 210 - random
+  # agent_classes_list: [0, 0, 0, 1]
+  # agent_classes_list: [0, 1]
+  # agent_classes_list: [0, 1, 0] # 10 - random, 1 - scout, 0 - rescuer
+  agent_classes_list: [0, 1, 0, 10] # 10 - random, 1 - scout, 0 - rescuer
+  max_num_targets: 5
+  spawn_hazards: false
+  max_num_hazards: 5
+  num_obstacles: 30
+  grid_size: 20
+  action_size: 3
+  
+  extended_delays: false
+  local_step_num: 30
+  agent_view_size: 7
+  astar_cost_mode: "normal"
+
+  model_dir: null
+
+  # Noise parameters
+  use_localization: true                 # whether to use localization at all (currently implemented for evaluation)  
+  use_localization_noise: true
+  position_drift_rate: 0.01 # meters per meter traveled
+  orientation_drift_rate: 0.01 # radians per meter traveled
+  
+  use_perception_noise: false
+  perception_noise_base_value: 0.1
+  perception_noise_distance_factor: 0.05
+  
+  use_slam_noise: false
+  slam_noise_prob: 0.05
+
+  
+  use_action_masking: true
+  block_doors: false
+  block_chance: 0.25
+  save_gifs: false
+  
+  # Rewards
+  use_energy_penalty: false
+  use_agent_obstacle: true
+  use_time_penalty: true
+  use_auxiliary_rewards: true
+  use_auxiliary_rewards_decay: false                 # starts decaying from the start, decays to 0 at 1000 episodes
+  max_auxiliary_reward_episode: 1000                # maximum episode number for auxiliary rewards decay
+  
+
+  # for compatibility
+  use_orientation: false
+  use_same_location: false
+  use_single_network: false
+  recurrent_N: 1
+  agent_pos: null
+  goal_history_decay: 0
+  data_chunk_length: 10                            # Time length of chunks used to train a recurrent_policy
