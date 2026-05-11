@@ -37,6 +37,22 @@ The framework is tested in **MiniSAR**, a custom search-and-rescue testbed modif
 * **Features:** Procedurally generated cluttered rooms, dynamic targets, varying obstacle types, and strict "fog of war" local visibility.
 * **Tasks:** Supports dynamic multi-target search and rescue scenarios requiring tight coordination between heterogeneous teams (e.g., fast Scouts for exploration and specialized Rescuers for target retrieval).
 
+### MiniSAR demos
+
+Below, MACMAT-driven heterogeneous teams coordinate in MiniSAR at three grid scales (larger worlds stress exploration and long-horizon coordination).
+
+<p align="center">
+  <img src="hetmarl/docs/macmat_15x15.gif" alt="MACMAT in MiniSAR on a 15 by 15 grid" width="30%" />
+  &nbsp;
+  <img src="hetmarl/docs/macmat_20x20.gif" alt="MACMAT in MiniSAR on a 20 by 20 grid" width="30%" />
+  &nbsp;
+  <img src="hetmarl/docs/macmat_28x28.gif" alt="MACMAT in MiniSAR on a 28 by 28 grid" width="30%" />
+</p>
+
+<p align="center">
+  <sub><strong>15×15</strong> · <strong>20×20</strong> · <strong>28×28</strong></sub>
+</p>
+
 ---
 
 ## 🚀 Installation
