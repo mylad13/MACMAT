@@ -1,2 +1,5 @@
 hetmarl/scripts/results
 hetmarl/scripts/outputs
+
+# Python bytecode
+*.pyc

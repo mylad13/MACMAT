@@ -754,7 +754,7 @@ class AsynchronousClassBasedLiquidMultiAgentTransformer(nn.Module):
             if self.action_type == 'Discrete':
                 # 1. Masking
                 if available_actions is not None:
-                    logits[available_actions == 0] = -1e10 # Large negative number
+                    logits[available_actions == 0] = torch.finfo(logits.dtype).min
 
                 # 2. Distribution
                 distri = Categorical(logits=logits)
@@ -837,7 +837,7 @@ class AsynchronousClassBasedLiquidMultiAgentTransformer(nn.Module):
                 # Masking
                 if available_actions is not None:
                     available_actions = available_actions.reshape(logits.shape)
-                    logits[available_actions == 0] = -1e10
+                    logits[available_actions == 0] = torch.finfo(logits.dtype).min
                 
                 distri = Categorical(logits=logits)
                 action = distri.probs.argmax(dim=-1) if deterministic else distri.sample()

@@ -9,8 +9,6 @@ from pathlib import Path
 
 import torch
 
-from hetmarl.config import get_config
-
 from hetmarl.envs.gridworld.GridWorld_Env import GridWorldEnv
 from hetmarl.envs.env_wrappers import InfoSubprocVecEnv, InfoDummyVecEnv, ChooseInfoSubprocVecEnv, ChooseInfoDummyVecEnv
 

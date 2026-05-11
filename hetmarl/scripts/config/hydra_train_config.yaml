@@ -69,9 +69,9 @@ all_args:
   use_full_comm: true                             # the communication graph is fully connected
   comm_sigma: 5                                    # standard deviation of the communication probabilty
   comm_radius: 10                                  # communication cutoff radius    
-  use_graph_attention: true                      # Ablation: disabling sequential decision-making and graph attention during training (and eval of corresponding models)
+  use_graph_attention: false                      # Ablation: disabling sequential decision-making and graph attention during training (and eval of corresponding models)
   use_graph_attention_eval: false                 # Ablation: disabling sequential decision-making and graph attention during eval of models trained with it
-  use_classbased_action: true                     # Ablation: whether to use the ClassBasedAction module or agent indication
+  use_classbased_action: false                     # Ablation: whether to use the ClassBasedAction module or agent indication
 
   # Target and Obstacle parameters
   dynamic_targets: false
@@ -94,7 +94,7 @@ all_args:
   use_feature_normalization: true                  # Apply layernorm to the inputs
   use_orthogonal: true                             # Use Orthogonal initialization for weights and 0 initialization for biases
   use_rnn: true                                    # Use RNN in the encoder
-  rnn_type: "MixedNCP"                                 # RNN type: LSTM, GRU, CfC, MixedCfC, NCP, MixedNCP, None
+  rnn_type: "LSTM"                                 # RNN type: LSTM, GRU, CfC, MixedCfC, NCP, MixedNCP, None
   
   # Environment and specific render parameters
   env_name: "GridWorld"

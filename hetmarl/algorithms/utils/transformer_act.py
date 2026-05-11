@@ -58,14 +58,14 @@ def multidiscrete_autoregreesive_act(decoder, obs_rep, obs, batch_size, n_agent,
                     for b in range(batch_size):
                         for r in range(action_dim[0]):
                             mask[b,r] = torch.any(available_actions[b,i,r]) # rows that have no available columns set mask to false
-                    logit_i[mask == False] = -1e10
+                    logit_i[mask == False] = torch.finfo(logit_i.dtype).min
                     pass
                 elif cnt1 == 1: #for the column action
                     mask = torch.full((batch_size, action_dim[1]), True)
                     for b in range(batch_size):
                         for c in range(action_dim[1]):
                             mask[b,c] = available_actions[b, i, output_action[b, i, 0], c]==1 # columns that have no available actions set mask to false
-                    logit_i[mask == False] = -1e10
+                    logit_i[mask == False] = torch.finfo(logit_i.dtype).min
             distri = Categorical(logits=logit_i)
                 # print("distri: ", distri)
             action = distri.probs.argmax(dim=-1) if deterministic else distri.sample()
@@ -154,7 +154,7 @@ def multidiscrete_parallel_act(decoder, obs_rep, obs, action, batch_size, n_agen
                         for r in range(action_dim[0]):
                             mask[b,a,r] = torch.any(available_actions[b,a,r]) # rows that have no available columns set mask to false
                 # print("row mask of [10,:]: ", mask[100,:,:])
-                logit[mask == False] = -1e10
+                logit[mask == False] = torch.finfo(logit.dtype).min
             elif cnt1 == 1: #for the column action
                 mask = torch.full((batch_size, n_agent, action_dim[1]), True)
                 for b in range(batch_size):
@@ -162,7 +162,7 @@ def multidiscrete_parallel_act(decoder, obs_rep, obs, action, batch_size, n_agen
                         for c in range(action_dim[1]):
                             mask[b,a,c] = available_actions[b, a, action[b, a, 0], c]==1 # columns that have no available actions set mask to false
                 # print("column mask of [10,:]: ", mask[100,:,:])
-                logit[mask == False] = -1e10
+                logit[mask == False] = torch.finfo(logit.dtype).min
         distri = Categorical(logits=logit)
         # print("shape of action[:,:,cnt1] is: ", action[:,:,cnt1].shape)
         action_log = distri.log_prob(action[:,:,cnt1].squeeze(-1)).unsqueeze(-1)
