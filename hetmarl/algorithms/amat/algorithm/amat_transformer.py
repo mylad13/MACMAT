@@ -12,10 +12,7 @@ from hetmarl.algorithms.utils.transformer_act import continuous_autoregreesive_a
 from hetmarl.algorithms.utils.transformer_act import continuous_parallel_act
 from hetmarl.algorithms.utils.transformer_act import multidiscrete_autoregreesive_act
 from hetmarl.algorithms.utils.transformer_act import multidiscrete_parallel_act
-from hetmarl.algorithms.utils.channel_vit import ChannelVisionTransformer
 from functools import partial
-
-import icecream as ic
 
 def init_(m, gain=0.01, activate=False):
     if activate:
@@ -61,10 +58,7 @@ class SelfAttention(nn.Module):
         
         
         if self.masked: #adaptive masked attention
-            mask = torch.tril(torch.ones(n_agents + 1, n_agents + 1)).view(1, 1, n_agents + 1, n_agents + 1)
-            if torch.cuda.is_available():
-                mask = mask.to("cuda:0")
-            # att = att.masked_fill(self.mask[:, :, :L, :L] == 0, float('-inf'))
+            mask = torch.tril(torch.ones(n_agents + 1, n_agents + 1, device=att.device)).view(1, 1, n_agents + 1, n_agents + 1)
             att = att.masked_fill(mask[:, :, :L, :L] == 0, float('-inf'))
         att = F.softmax(att, dim=-1)
 

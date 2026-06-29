@@ -69,9 +69,9 @@ all_args:
   use_full_comm: true                             # the communication graph is fully connected
   comm_sigma: 5                                    # standard deviation of the communication probabilty
   comm_radius: 10                                  # communication cutoff radius    
-  use_graph_attention: false                      # Ablation: disabling sequential decision-making and graph attention during training (and eval of corresponding models)
-  use_graph_attention_eval: false                 # Ablation: disabling sequential decision-making and graph attention during eval of models trained with it
-  use_classbased_action: false                     # Ablation: whether to use the ClassBasedAction module or agent indication
+  use_graph_attention: true                       # true = full MACMAT (sequential decision-making + graph attention across the comm neighborhood). false = NoAttn ablation (independent local processing).
+  use_graph_attention_eval: true                  # Apply graph attention at eval; must match the trained model's use_graph_attention.
+  use_classbased_action: true                     # true = class-specific action heads (paper's main MACMAT model). false = NoClass ablation (single shared head + one-hot class id in the observation).
 
   # Target and Obstacle parameters
   dynamic_targets: false
@@ -115,6 +115,9 @@ all_args:
   action_size: 3
   
   extended_delays: false
+  max_ma_duration: 30                             # max macro-action duration (rest_time between an agent's macro-actions)
+  async_min_wait: 2                               # async scheduling: min standby steps before an agent re-activates
+  async_max_wait: 4                               # async scheduling: max standby steps before an agent re-activates
   local_step_num: 30
   agent_view_size: 7
   astar_cost_mode: "normal"

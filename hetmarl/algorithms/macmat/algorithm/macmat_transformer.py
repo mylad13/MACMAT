@@ -5,7 +5,6 @@ from torch.nn import functional as F
 import math
 import numpy as np
 from torch.distributions import Categorical
-# from .distributions import Bernoulli, Categorical, DiagGaussian
 from hetmarl.algorithms.utils.util import check, init
 from hetmarl.algorithms.utils.transformer_act import discrete_autoregreesive_act
 from hetmarl.algorithms.utils.transformer_act import discrete_parallel_act
@@ -13,11 +12,10 @@ from hetmarl.algorithms.utils.transformer_act import continuous_autoregreesive_a
 from hetmarl.algorithms.utils.transformer_act import continuous_parallel_act
 from hetmarl.algorithms.utils.transformer_act import multidiscrete_autoregreesive_act
 from hetmarl.algorithms.utils.transformer_act import multidiscrete_parallel_act
-# from hetmarl.algorithms.utils.channel_vit import ChannelVisionTransformer
 from functools import partial
 from hetmarl.algorithms.utils.torchncp import CfCCell, WiredCfCCell
 from hetmarl.algorithms.utils.torchncp.wirings import AutoNCP, NCP_No_Motor
-from hetmarl.algorithms.utils.set_transformer import SetTransformer, DeepSetBlock
+from hetmarl.algorithms.utils.set_transformer import SetTransformer
 
 def init_(m, gain=0.01, activate=False):
     if activate:
@@ -66,9 +64,7 @@ class SelfAttention(nn.Module):
         
         
         if self.masked: #adaptive masked attention
-            mask = torch.tril(torch.ones(n_agents + 1, n_agents + 1)).view(1, 1, n_agents + 1, n_agents + 1)
-            if torch.cuda.is_available():
-                mask = mask.to("cuda:0")
+            mask = torch.tril(torch.ones(n_agents + 1, n_agents + 1, device=att.device)).view(1, 1, n_agents + 1, n_agents + 1)
             att = att.masked_fill(mask[:, :, :L, :L] == 0, float('-inf'))
         att = F.softmax(att, dim=-1)
         # att = self.dropout(att)
@@ -854,20 +850,17 @@ class AsynchronousClassBasedLiquidMultiAgentTransformer(nn.Module):
 
 
     def get_values(self, state, obs, available_actions=None):
-        # state unused
-        ori_shape = np.shape(state)
-        state = np.zeros((*ori_shape[:-1], 37), dtype=np.float32)
-
-        if self._mixed_obs:
-            for key in obs.keys():
-                obs[key] = check(obs[key]).to(**self.tpdv)
-                # state[key] = check(state[key]).to(**self.tpdv)
-        else:
-            obs = check(obs).to(**self.tpdv)
-        state = check(state).to(**self.tpdv)
-
-        v_tot, obs_rep = self.encoder(state, obs, active_agents=None)
-        return v_tot
+        # NOTE: Value estimates for MACMAT are produced inside the encoder during
+        # `get_actions`/`forward` (the encoder returns `v_loc`), and bootstrap returns are
+        # handled by `GridWorldRunner.compute(next_values)`, which overrides
+        # `Runner.compute()`. This standalone path (used by the base `Runner.compute()`)
+        # is therefore not part of the MACMAT pipeline; it also cannot work as written
+        # because the recurrent critic requires `rnn_states` that are not threaded here.
+        raise NotImplementedError(
+            "AsynchronousClassBasedLiquidMultiAgentTransformer.get_values is unused: "
+            "values are computed via get_actions/forward and bootstrapped in "
+            "GridWorldRunner.compute()."
+        )
 
 
 

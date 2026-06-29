@@ -42,7 +42,6 @@ class WiredCfCCell(nn.Module):
                 ],
                 axis=0,
             )
-            print(f"Layer {l}: input size {in_features}, hidden size {len(hidden_units)}")
             # Hack: nn.Module registers child params in set_attribute
             rnn_cell = CfCCell(
                 in_features,

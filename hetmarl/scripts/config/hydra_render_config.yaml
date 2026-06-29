@@ -22,7 +22,9 @@ all_args:
   max_steps: 1000
   episode_length: 1000                             # default value 200
   asynch: true
-  max_ma_duration: 30                             # max macro-action duration
+  max_ma_duration: 30                             # max macro-action duration (rest_time between an agent's macro-actions)
+  async_min_wait: 2                               # async scheduling: min standby steps before an agent re-activates
+  async_max_wait: 4                               # async scheduling: max standby steps before an agent re-activates
   save_interval: 1
   log_interval: 1                                 # default value 5
   eval_interval: 25
@@ -72,7 +74,7 @@ all_args:
 
   use_graph_attention: true                       # Ablation: disabling sequential decision-making and graph attention during training (and eval of corresponding models)
   use_graph_attention_eval: true                 # Ablation: disabling sequential decision-making and graph attention during eval of models trained with it
-  use_classbased_action: false                     # Ablation: whether to use the ClassBasedAction module or agent indication
+  use_classbased_action: true                      # Must match the loaded checkpoint. true = class-specific heads (main model); false = NoClass ablation (shared head + one-hot class id).
 
   # Target and Obstacle parameters
   dynamic_targets: true

@@ -369,7 +369,7 @@ def main(gx=6.0, gy=10.0):
         if type(path)!= type(None):
             plt.plot([x for (x, y) in path], [y for (x, y) in path], 'r--')
         plt.grid(True)
-        plt.savefig('/home/gaojiaxuan/onpolicy/onpolicy/scripts/gjx_tmp/rrt.png')
+        plt.savefig('rrt.png')
 
 
 if __name__ == '__main__':

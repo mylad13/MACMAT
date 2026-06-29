@@ -6,7 +6,6 @@ import numpy as np
 from itertools import chain
 import torch
 import imageio
-from icecream import ic
 import matplotlib.pyplot as plt
 import cv2
 from collections import defaultdict, deque
@@ -101,7 +100,9 @@ class GridWorldRunner(Runner):
             def generate_random_period(min_t,max_t):
                 return np.random.randint(min_t, max_t)
             self.asynch_control = AsynchControl(num_envs=self.n_rollout_threads, num_agents=self.num_agents,
-                                                limit=self.episode_length, random_fn=generate_random_period, min_wait=2, max_wait=4, rest_time = 30)
+                                                limit=self.episode_length, random_fn=generate_random_period,
+                                                min_wait=self.all_args.async_min_wait, max_wait=self.all_args.async_max_wait,
+                                                rest_time=self.all_args.max_ma_duration)
 
         start = time.time()
         episodes = int(self.num_env_steps) // self.max_steps // self.n_rollout_threads
@@ -2409,8 +2410,8 @@ class GridWorldRunner(Runner):
             max_wait = 60
         else:
             rest_time = self.all_args.max_ma_duration
-            min_wait = 2
-            max_wait = 4
+            min_wait = self.all_args.async_min_wait
+            max_wait = self.all_args.async_max_wait
         if self.asynch:
             def generate_random_period(min_t,max_t):
                 if self.extended_delays:
@@ -2541,7 +2542,6 @@ class GridWorldRunner(Runner):
         rewards_data = []
 
         for episode in range(self.all_args.eval_episodes):
-            ic(episode)
             self.init_eval_env_info()
             self.init_eval_map_variables()
             self.timespan_list = []
@@ -2817,8 +2817,11 @@ class GridWorldRunner(Runner):
             'rewards_data': rewards_data
 
         }
-        np.save(os.path.expanduser(f'~/Dissertation Results Visualization/{agent_composition}-{self.map_size}x{self.map_size}map-{target_status}-{obstacle_status}-{comm_status}-{noise_status}-{model_type}{delay_status}-data.npy'), eval_data_dict)
-        print("")
+        eval_data_dir = os.path.join(str(self.run_dir), 'eval_data')
+        os.makedirs(eval_data_dir, exist_ok=True)
+        eval_data_path = os.path.join(eval_data_dir, f'{agent_composition}-{self.map_size}x{self.map_size}map-{target_status}-{obstacle_status}-{comm_status}-{noise_status}-{model_type}{delay_status}-data.npy')
+        np.save(eval_data_path, eval_data_dict)
+        print("Saved eval data to", eval_data_path)
 
         # # Plot the cumulative success probability
         # plt.figure(figsize=(10, 6))
@@ -2856,8 +2859,8 @@ class GridWorldRunner(Runner):
             max_wait = 60
         else:   
             rest_time = self.all_args.max_ma_duration
-            min_wait = 2
-            max_wait = 4
+            min_wait = self.all_args.async_min_wait
+            max_wait = self.all_args.async_max_wait
         if self.asynch:
             def generate_random_period(min_t,max_t):
                 if self.extended_delays:
@@ -2875,7 +2878,6 @@ class GridWorldRunner(Runner):
         all_local_frames = []
 
         for episode in range(self.all_args.render_episodes):
-            ic(episode)
             self.init_env_info()
             self.init_map_variables()
             reset_choose = np.ones(self.n_rollout_threads) == 1.0
@@ -3179,11 +3181,11 @@ class GridWorldRunner(Runner):
             print("eval average {}: {}".format(k, np.nanmean(v) if k == 'merge_explored_ratio_step' else np.mean(v)))
 
         if self.all_args.save_gifs:
-            ic("rendering....")
+            print("Saving GIFs...")
             imageio.mimsave(str(self.gif_dir) + '/merge.gif',
                             all_frames, duration=self.all_args.ifi)
             imageio.mimsave(str(self.gif_dir) + '/local.gif',
                             all_local_frames, duration=self.all_args.ifi)
-            ic("done")
+            print("Saved GIFs to", str(self.gif_dir))
 
     
