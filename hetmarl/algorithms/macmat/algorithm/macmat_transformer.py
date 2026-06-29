@@ -235,25 +235,7 @@ class Encoder(nn.Module):
         if self.spawn_hazards:
             self.hazard_positions_encoder = SetTransformer(dim_input=5, num_outputs=1, dim_output=n_embd, dim_hidden=hidden_size1, num_heads=1, ln=True)
             # self.hazard_positions_encoder = DeepSetBlock(in_dim=5, hidden_dim=hidden_size1, out_dim=n_embd)
-            # # Option 1: Concatenate the class encoding with observation embeddings
-                       
-            # self.global_info_encoder = nn.Sequential(
-            #     nn.LayerNorm(2*n_embd),
-            #     init_(nn.Linear(2*n_embd, hidden_size1), activate=True), self.gelu, nn.LayerNorm(hidden_size1),
-            #     init_(nn.Linear(hidden_size1, n_embd), activate=True), self.gelu)
-            # self.local_info_encoder = nn.Sequential(
-            #     nn.LayerNorm(2*n_embd),
-            #     init_(nn.Linear(2*n_embd, hidden_size1), activate=True), self.gelu, nn.LayerNorm(hidden_size1),
-            #     init_(nn.Linear(hidden_size1, n_embd), activate=True), self.gelu)
-            # self.obs_encoder = nn.Sequential(
-            #     nn.LayerNorm(3*n_embd),
-            #     init_(nn.Linear(3*n_embd, hidden_size1), activate=True), self.gelu, nn.LayerNorm(hidden_size1),
-            #     init_(nn.Linear(hidden_size1, n_embd), activate=True), self.gelu)
-            # Option 2: add the class encoding to the observation embeddings
-            # self.obs_encoder = nn.Sequential(
-            #     nn.LayerNorm(2*n_embd),
-            #     init_(nn.Linear(2*n_embd, hidden_size1), activate=True), self.gelu, nn.LayerNorm(hidden_size1),
-            #     init_(nn.Linear(hidden_size1, n_embd), activate=True), self.gelu)
+            # Class-conditioning fusion for the obs encoder (NoClass ablation): docs/architecture_notes.md
             if self.use_classbased_action:
                 self.single_obs_encoder = nn.Sequential(
                     nn.LayerNorm(4*n_embd),
@@ -292,49 +274,19 @@ class Encoder(nn.Module):
                     init_(nn.Linear(hidden_size1, n_embd), activate=True), self.gelu)
             elif rnn_type == 'MixedCfC':
                 self.rnn = CfCCell(input_size=n_embd, hidden_size=n_hidden_r)
-                # self.rnn = WiredCfCCell(input_size=n_embd, wiring=AutoNCP(n_hidden_r, 1))
                 self.lstm = nn.LSTMCell(input_size=n_embd, hidden_size=n_hidden_r)
                 self.fusion_layer = nn.Sequential(
                     nn.LayerNorm(n_embd+n_hidden_r),
                     init_(nn.Linear(n_embd+n_hidden_r, hidden_size1), activate=True), self.gelu, nn.LayerNorm(hidden_size1),
                     init_(nn.Linear(hidden_size1, n_embd), activate=True), self.gelu)
             elif rnn_type == 'NCP':
-                # wiring = NCP_No_Motor(inter_neurons = 20,
-                #                       command_neurons = 12, # ~1:2 ratio of inter_neurons to command_neurons
-                #                       sensory_fanout = 5, # ~1:4 ratio of inter_neurons to sensory_fanout
-                #                       inter_fanout = 3, # ~1:4 ratio of inter_fanout to command_neurons
-                #                       recurrent_command_synapses = 12 # ~1 per command
-                #                       ) # this is for n_hidden_r = 32
-                # wiring = NCP_No_Motor(inter_neurons = 40,
-                #                       command_neurons = 24, # ~1:2 ratio of inter_neurons to command_neurons
-                #                       sensory_fanout = 10, # ~1:4 ratio of inter_neurons to sensory_fanout
-                #                       inter_fanout = 6, # ~1:4 ratio of inter_fanout to command_neurons
-                #                       recurrent_command_synapses = 24 # ~1 per command
-                #                       ) # this is for n_hidden_r = 64
-                # wiring = NCP_No_Motor(inter_neurons = 64,
-                #                       command_neurons = 32, # ~1:2 ratio of inter_neurons to command_neurons
-                #                       sensory_fanout = 16, # ~1:4 ratio of sensory_fanout to inter_neurons
-                #                       inter_fanout = 8, # ~1:4 ratio of inter_fanout to command_neurons
-                #                       recurrent_command_synapses = 32 # ~1 per command
-                #                       ) # this is for n_hidden_r = 96
+                # Wiring presets for other n_hidden_r values: docs/architecture_notes.md
                 wiring = NCP_No_Motor(inter_neurons = 80,
                                       command_neurons = 48, # ~1:2 ratio of inter_neurons to command_neurons
                                       sensory_fanout = 20, # ~1:4 ratio of inter_neurons to sensory_fanout
                                       inter_fanout = 12, # ~1:4 ratio of inter_fanout to command_neurons
                                       recurrent_command_synapses = 48 # ~1 per command
                                       ) # this is for n_hidden_r = 128
-                # wiring = NCP_No_Motor(inter_neurons = 96,
-                #                       command_neurons = 48, # ~1:2 ratio of inter_neurons to command_neurons
-                #                       sensory_fanout = 24, # ~1:4 ratio of sensory_fanout to inter_neurons
-                #                       inter_fanout = 12, # ~1:4 ratio of inter_fanout to command_neurons
-                #                       recurrent_command_synapses = 48 # ~1 per command
-                #                       ) # this is for n_hidden_r = 144
-                # wiring = NCP_No_Motor(inter_neurons = 128,
-                #                       command_neurons = 64, # ~1:2 ratio of inter_neurons to command_neurons
-                #                       sensory_fanout = 32, # ~1:4 ratio of sensory_fanout to inter_neurons
-                #                       inter_fanout = 16, # ~1:4 ratio of inter_fanout to command_neurons
-                #                       recurrent_command_synapses = 64 # ~1 per command
-                #                       ) # this is for n_hidden_r = 192
                 self.rnn = WiredCfCCell(input_size=n_embd, wiring=wiring, mode="default")
                 self.fusion_layer = nn.Sequential(
                     nn.LayerNorm(n_embd+n_hidden_r),
@@ -452,15 +404,7 @@ class Encoder(nn.Module):
                 obs_embeddings = obs_embeddings.reshape(-1, self.n_agent, self.n_embd)
                 rnn_states = rnn_states.reshape(-1, self.n_agent, self.n_hidden_r)
                 
-                # Option A: Context-aware memory updates
-                # rnn_states = self.blocks(self.ln(rnn_states)) # This is the updated context-aware memory of each agent, passed to be used for the next macro-step
-                # rep = self.fusion_layer(torch.cat((obs_embeddings, rnn_states), dim=2))
-                
-                # Option B: Context-aware memory, no updates
-                # context_aware_memory = self.blocks(self.ln(rnn_states)) # This is the updated context-aware memory of each agent, only used for the current step
-                # rep = self.fusion_layer(torch.cat((obs_embeddings, context_aware_memory), dim=2))
-
-                # Option C: memory and observation merge, then become context aware
+                # Memory-fusion variants A/B/C explored (docs/architecture_notes.md); shipped = Option C: merge then attend.
                 fused_embedding = self.fusion_layer(torch.cat((obs_embeddings, rnn_states), dim=2))
                 state_representation = fused_embedding
 
@@ -602,11 +546,7 @@ class Decoder(nn.Module):
                 if not self.use_classbased_action:
                     agent_class_encoding = self.agent_class_encoder(obs['agent_class_identifier'])
                 
-                    # # Option 1: concat and pass through another linear layer
-                    # act_emdb = torch.cat((agent_class_encoding, action_embeddings), dim=1)
-                    # action_embeddings = self.action_encoder(act_emdb) # (batch_size * n_agent, n_embd)
-
-                    # Option 2: Add the agent class encoding to the action embeddings
+                    # Add the learned agent-class encoding to the action embeddings (NoClass ablation).
                     action_embeddings = action_embeddings + agent_class_encoding # (batch_size * n_agent, n_embd)
 
                 action_embeddings = action_embeddings.reshape(-1, self.n_agent, self.n_embd) # (batch_size, n_agent, n_embd)
