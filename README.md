@@ -256,16 +256,8 @@ ablation). Team composition and map size are set with `agent_classes_list` and
 
 ## 📝 Citation
 
-If you use this code, please cite the accompanying manuscript:
-
-```bibtex
-@article{macmat,
-  title   = {MACMAT: Memory-Augmented Class-Based Transformer for
-             Generalizable, Mapless Multi-Robot Coordination},
-  author  = {Farjadnasab, Milad},
-  year    = {2025}
-}
-```
+The accompanying manuscript is currently **under review**. Citation details will be
+added here once it is published.
 
 ---
 
