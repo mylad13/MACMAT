@@ -831,6 +831,33 @@ class GridWorldRunner(Runner):
             macro_action = np.stack((row, col), axis=-1)
         return macro_action
 
+    def _make_asynch_control(self, num_envs):
+        """Build the AsynchControl for an eval/render rollout (shared by both).
+
+        With ``extended_delays`` the standby period is random with wider waits;
+        otherwise the period is 0 (no artificial decision delays) with the
+        configured async waits. (The training ``run`` loop uses always-random
+        periods and builds its own AsynchControl.)
+        """
+        if self.extended_delays:
+            rest_time = 50
+            min_wait = 0
+            max_wait = 60
+        else:
+            rest_time = self.all_args.max_ma_duration
+            min_wait = self.all_args.async_min_wait
+            max_wait = self.all_args.async_max_wait
+
+        def generate_random_period(min_t, max_t):
+            if self.extended_delays:
+                return np.random.randint(min_t, max_t)
+            else:  # by default, no artificial delays in decision-making
+                return 0
+
+        return AsynchControl(num_envs=num_envs, num_agents=self.num_agents,
+                             limit=self.episode_length, random_fn=generate_random_period,
+                             min_wait=min_wait, max_wait=max_wait, rest_time=rest_time)
+
     def init_keys(self):
         """Initialize metric tracking keys"""
         
@@ -2394,22 +2421,8 @@ class GridWorldRunner(Runner):
 
     @torch.no_grad()
     def eval(self):
-        if self.extended_delays:
-            rest_time = 50
-            min_wait = 0
-            max_wait = 60
-        else:
-            rest_time = self.all_args.max_ma_duration
-            min_wait = self.all_args.async_min_wait
-            max_wait = self.all_args.async_max_wait
         if self.asynch:
-            def generate_random_period(min_t,max_t):
-                if self.extended_delays:
-                    return np.random.randint(min_t,max_t)
-                else: # by default, no artificial delays in decision-making
-                    return 0
-            self.asynch_control = AsynchControl(num_envs=self.n_eval_rollout_threads, num_agents=self.num_agents,
-                                                limit=self.episode_length, random_fn=generate_random_period, min_wait=min_wait, max_wait=max_wait, rest_time = rest_time)
+            self.asynch_control = self._make_asynch_control(self.n_eval_rollout_threads)
         eval_envs = self.eval_envs
         self.eval_env_infos = defaultdict(list)
         use_ft = self.all_args.algorithm_name[:2] == "ft"
@@ -2843,23 +2856,9 @@ class GridWorldRunner(Runner):
         
     @torch.no_grad()
     def render(self):
-        if self.extended_delays:
-            rest_time = 50
-            min_wait = 0
-            max_wait = 60
-        else:   
-            rest_time = self.all_args.max_ma_duration
-            min_wait = self.all_args.async_min_wait
-            max_wait = self.all_args.async_max_wait
         if self.asynch:
-            def generate_random_period(min_t,max_t):
-                if self.extended_delays:
-                    return np.random.randint(min_t,max_t)
-                else:
-                    return 0
-            self.asynch_control = AsynchControl(num_envs=self.n_rollout_threads, num_agents=self.num_agents,
-                                                limit=self.episode_length, random_fn=generate_random_period, min_wait=min_wait, max_wait=max_wait, rest_time = rest_time)
-        
+            self.asynch_control = self._make_asynch_control(self.n_rollout_threads)
+
         envs = self.envs
         # Init env infos.
         # self.eval_infos = defaultdict(list)
