@@ -53,7 +53,10 @@ class GridWorldEnv(object):
             perception_noise_distance_factor = args.perception_noise_distance_factor,
             action_size = args.action_size,
             )
-        self.env = gym.make(self.scenario_name)
+        # gym>=0.26 wraps envs in PassiveEnvChecker by default, which rejects this
+        # env's list-valued multi-agent action_space. The checker only validates the
+        # standard single-agent gym API and changes no dynamics, so disable it.
+        self.env = gym.make(self.scenario_name, disable_env_checker=True)
         self.max_steps = self.env.max_steps
 
         # Action space is grid size
