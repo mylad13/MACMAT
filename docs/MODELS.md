@@ -2,7 +2,9 @@
 
 The **10 learned models** from the MACMAT paper: 6 memory architectures
 (NoRNN, LSTM, NCP, MixedNCP, CfC, MixedCfC) and 4 structural ablations
-(LSTM/MixedNCP × NoAttn/NoClass). Each `<Model>/` directory contains:
+(LSTM/MixedNCP × NoAttn/NoClass). The checkpoints live under
+`hetmarl/scripts/results/GridWorld/MiniGrid-SearchAndRescue-v0/macmat/Target_Driven_Navigation/checkpoints/`.
+Each `<Model>/` directory there contains:
 
 - `transformer.pt` — the trained weights (the only file the policy loads; see
   `hetmarl/algorithms/transformer_policy.py: restore`).

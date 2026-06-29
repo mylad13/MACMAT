@@ -128,8 +128,7 @@ all_args:
   astar_cost_mode: "normal"
 
   # Released pre-trained checkpoints (the 10 models from the paper). See
-  # results/GridWorld/MiniGrid-SearchAndRescue-v0/macmat/Target_Driven_Navigation/checkpoints/MODELS.md
-  # for the full cross-reference. Uncomment exactly ONE model_dir line and set the
+  # docs/MODELS.md for the full cross-reference. Uncomment exactly ONE model_dir line and set the
   # per-model arch flags in its trailing comment; the global flags encode_state: false,
   # max_num_targets: 5, num_agents: 4, n_agent_types: 2 are already set above.
   model_dir: "../../../results/GridWorld/MiniGrid-SearchAndRescue-v0/macmat/Target_Driven_Navigation/checkpoints/LSTM"             # LSTM (default) -> rnn_type: LSTM, use_rnn: true

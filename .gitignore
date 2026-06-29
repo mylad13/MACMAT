@@ -12,5 +12,3 @@ dist/
 
 # Test / tooling caches
 .pytest_cache/
-# bit-for-bit baseline run dir
-.bitwise_runs/
