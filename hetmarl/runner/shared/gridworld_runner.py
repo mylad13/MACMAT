@@ -1734,34 +1734,10 @@ class GridWorldRunner(Runner):
                 # self.eval_rnn_states = np.array(np.split(_t2n(rnn_states), n_threads))
             
             
-            if rnn_states_actor is not None:
-                if isinstance(rnn_states_actor, (tuple, list)):
-                    rnn_states_actor = tuple(np.array(_t2n(s)) for s in rnn_states_actor)
-                else:
-                    rnn_states_actor = np.array(_t2n(rnn_states_actor))
-            if rnn_states_critic is not None:
-                if isinstance(rnn_states_critic, (tuple, list)):
-                    rnn_states_critic = tuple(np.array(_t2n(s)) for s in rnn_states_critic)
-                else:
-                    rnn_states_critic = np.array(_t2n(rnn_states_critic))
-            goal = np.array(np.split(_t2n(action), n_threads)).astype(np.int32) 
-
-
-
-            if self.algorithm_name == "macmat":
-                ### navigation goal when using front camera view (with agent positioned at bottom center of the view),
-                # and possibility of macro actions including primary actions (turn left, turn right, toggle, etc)
-                #TODO: If action_size is not agent_view_size//2, then the difference has to be taken into account, which isn't done now.
-                col = goal//(2*self.action_size+1)
-                row = goal%(2*self.action_size+1)
-                default_primary_indicator = np.full_like(row, -1, dtype=row.dtype)
-                macro_action = np.stack((row, col, default_primary_indicator), axis=-1)
-            elif self.algorithm_name == "amat":
-            # ### ego-relative goal when using 360 degrees vision
-                row = goal//(2*self.action_size+1) - self.action_size
-                col = goal%(2*self.action_size+1) - self.action_size
-                macro_action = np.stack((row, col), axis=-1)
-            # print("Generated macro action is: ", macro_action)
+            rnn_states_actor = self._rnn_states_to_numpy(rnn_states_actor)
+            rnn_states_critic = self._rnn_states_to_numpy(rnn_states_critic)
+            goal = np.array(np.split(_t2n(action), n_threads)).astype(np.int32)
+            macro_action = self._goal_to_macro_action(goal)
             return goal, macro_action, rnn_states_actor, rnn_states_critic
     
         if use_ft:
