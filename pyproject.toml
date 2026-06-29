@@ -10,8 +10,15 @@ readme = "README.md"
 requires-python = ">=3.9"
 dynamic = ["dependencies"]
 
+[project.optional-dependencies]
+test = ["pytest>=7"]
+
 [tool.setuptools.dynamic]
 dependencies = { file = ["requirements.txt"] }
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
 
 # `hetmarl` is an implicit namespace package (no top-level __init__.py), so discovery
 # must allow namespace packages.
