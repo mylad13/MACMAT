@@ -1,0 +1,20 @@
+[build-system]
+requires = ["setuptools>=64"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "hetmarl-macmat"
+version = "0.1.0"
+description = "MACMAT: Memory-augmented Asynchronous Class-based Multi-Agent Transformer for mapless multi-robot coordination"
+readme = "README.md"
+requires-python = ">=3.9"
+dynamic = ["dependencies"]
+
+[tool.setuptools.dynamic]
+dependencies = { file = ["requirements.txt"] }
+
+# `hetmarl` is an implicit namespace package (no top-level __init__.py), so discovery
+# must allow namespace packages.
+[tool.setuptools.packages.find]
+include = ["hetmarl*"]
+namespaces = true
