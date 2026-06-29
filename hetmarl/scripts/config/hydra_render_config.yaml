@@ -115,7 +115,7 @@ all_args:
   # agent_classes_list: [0, 0, 1, 0] # 3r1s
   agent_classes_list: [0, 1, 0, 1] # 2r2s
   # agent_classes_list: [1, 0, 1, 1] # 1r3s
-  max_num_targets: 4
+  max_num_targets: 5                              # all released checkpoints were trained with 5
   spawn_hazards: false
   max_num_hazards: 3
   num_obstacles: 30
@@ -127,7 +127,21 @@ all_args:
   agent_view_size: 7
   astar_cost_mode: "normal"
 
-  model_dir: null # point to the model you want to load
+  # Released pre-trained checkpoints (the 10 models from the paper). See
+  # results/GridWorld/MiniGrid-SearchAndRescue-v0/macmat/Target_Driven_Navigation/checkpoints/MODELS.md
+  # for the full cross-reference. Uncomment exactly ONE model_dir line and set the
+  # per-model arch flags in its trailing comment; the global flags encode_state: false,
+  # max_num_targets: 5, num_agents: 4, n_agent_types: 2 are already set above.
+  model_dir: "../../../results/GridWorld/MiniGrid-SearchAndRescue-v0/macmat/Target_Driven_Navigation/checkpoints/LSTM"             # LSTM (default) -> rnn_type: LSTM, use_rnn: true
+  # model_dir: "../../../results/GridWorld/MiniGrid-SearchAndRescue-v0/macmat/Target_Driven_Navigation/checkpoints/NoRNN"            # use_rnn: false
+  # model_dir: "../../../results/GridWorld/MiniGrid-SearchAndRescue-v0/macmat/Target_Driven_Navigation/checkpoints/NCP"              # rnn_type: NCP,      use_rnn: true
+  # model_dir: "../../../results/GridWorld/MiniGrid-SearchAndRescue-v0/macmat/Target_Driven_Navigation/checkpoints/MixedNCP"         # rnn_type: MixedNCP, use_rnn: true
+  # model_dir: "../../../results/GridWorld/MiniGrid-SearchAndRescue-v0/macmat/Target_Driven_Navigation/checkpoints/CfC"              # rnn_type: CfC,      use_rnn: true
+  # model_dir: "../../../results/GridWorld/MiniGrid-SearchAndRescue-v0/macmat/Target_Driven_Navigation/checkpoints/MixedCfC"         # rnn_type: MixedCfC, use_rnn: true
+  # model_dir: "../../../results/GridWorld/MiniGrid-SearchAndRescue-v0/macmat/Target_Driven_Navigation/checkpoints/LSTM-NoAttn"      # rnn_type: LSTM,     use_graph_attention: false
+  # model_dir: "../../../results/GridWorld/MiniGrid-SearchAndRescue-v0/macmat/Target_Driven_Navigation/checkpoints/MixedNCP-NoAttn"  # rnn_type: MixedNCP, use_graph_attention: false
+  # model_dir: "../../../results/GridWorld/MiniGrid-SearchAndRescue-v0/macmat/Target_Driven_Navigation/checkpoints/LSTM-NoClass"     # rnn_type: LSTM,     use_classbased_action: false
+  # model_dir: "../../../results/GridWorld/MiniGrid-SearchAndRescue-v0/macmat/Target_Driven_Navigation/checkpoints/MixedNCP-NoClass" # rnn_type: MixedNCP, use_classbased_action: false
   
   # Noise parameters
   use_localization: false                 # whether to use localization at all (currently implemented for evaluation)
