@@ -96,7 +96,7 @@ class SharedReplayBuffer(object):
             self.obs = np.zeros((self.episode_length + 1, self.n_rollout_threads, num_agents, *obs_shape), dtype=np.float32)
             self.all_obs = np.zeros((self.episode_length + 1, self.n_rollout_threads, num_agents, *obs_shape), dtype=np.float32) # saves all agent observations everytime an agent acts (asynchronous training)
         if self.use_rnn:
-            if self.rnn_type == 'LSTM' or 'Mixed' in self.rnn_type:
+            if self._rnn_uses_tuple_state:
                 # self.rnn_states = (
                 #     np.zeros((self.episode_length + 1, self.n_rollout_threads, num_agents, self.recurrent_hidden_size), dtype=np.float32),
                 #     np.zeros((self.episode_length + 1, self.n_rollout_threads, num_agents, self.recurrent_hidden_size), dtype=np.float32)
@@ -152,6 +152,16 @@ class SharedReplayBuffer(object):
         self.agent_groups = np.ones((self.episode_length + 1, self.n_rollout_threads, num_agents, num_agents), dtype=np.int32)
         self.step = 0
 
+    @property
+    def _rnn_uses_tuple_state(self):
+        """Whether the recurrent state is stored as an ``(h, c)`` tuple.
+
+        True for ``LSTM`` and any ``Mixed*`` rnn_type, False for the single-array
+        types (``GRU`` / ``CfC`` / ``NCP``). Encapsulates the precedence-sensitive
+        ``rnn_type == 'LSTM' or 'Mixed' in rnn_type`` test repeated in the buffer.
+        """
+        return self.rnn_type == 'LSTM' or 'Mixed' in self.rnn_type
+
     def insert(self, share_obs, obs, rnn_states, rnn_states_critic, actions, action_log_probs,
                value_preds, rewards, masks, agent_groups, bad_masks=None, active_masks=None, available_actions=None):
 
@@ -203,7 +213,7 @@ class SharedReplayBuffer(object):
             # if e == 4:
             #     print(f"at step {self.step + 1}, agent {e} {a} has reward {rewards[e, a]} and value {value_preds[e, a]}")
             if self.use_rnn:
-                if self.rnn_type == 'LSTM' or 'Mixed' in self.rnn_type:
+                if self._rnn_uses_tuple_state:
                     # self.rnn_states[0][agent_step + 1, e, a] = rnn_states[0][e, a].copy()
                     # self.rnn_states[1][agent_step + 1, e, a] = rnn_states[1][e, a].copy()
                     self.rnn_states_critic[0][agent_step + 1, e, a] = rnn_states_critic[0][e, a].copy()
@@ -296,7 +306,7 @@ class SharedReplayBuffer(object):
                 self.obs = np.zeros((self.episode_length + 1, self.n_rollout_threads, self.num_agents, *obs_shape), dtype=np.float32)
                 self.all_obs = np.zeros((self.max_steps + 1, self.n_rollout_threads, self.num_agents, *obs_shape), dtype=np.float32) 
             if self.use_rnn:
-                if self.rnn_type == 'LSTM' or 'Mixed' in self.rnn_type:
+                if self._rnn_uses_tuple_state:
                     # self.rnn_states = (
                     #     np.zeros((self.episode_length + 1, self.n_rollout_threads, num_agents, self.recurrent_hidden_size), dtype=np.float32),
                     #     np.zeros((self.episode_length + 1, self.n_rollout_threads, num_agents, self.recurrent_hidden_size), dtype=np.float32)
@@ -358,7 +368,7 @@ class SharedReplayBuffer(object):
                 self.obs = np.zeros((self.episode_length + 1, self.n_rollout_threads, self.num_agents, *obs_shape), dtype=np.float32)
             
             if self.use_rnn:
-                if self.rnn_type == 'LSTM' or 'Mixed' in self.rnn_type:
+                if self._rnn_uses_tuple_state:
                     # self.rnn_states = (
                     #     np.zeros((self.episode_length + 1, self.n_rollout_threads, num_agents, self.recurrent_hidden_size), dtype=np.float32),
                     #     np.zeros((self.episode_length + 1, self.n_rollout_threads, num_agents, self.recurrent_hidden_size), dtype=np.float32)
@@ -506,7 +516,7 @@ class SharedReplayBuffer(object):
             ordered_available_actions = np.zeros_like(self.available_actions)[:max_steps+1]
         
         if self.use_rnn:
-            if self.rnn_type == 'LSTM' or 'Mixed' in self.rnn_type:
+            if self._rnn_uses_tuple_state:
                 ordered_rnn_states_critic = (
                     np.zeros_like(self.rnn_states_critic[0])[:max_steps+1],
                     np.zeros_like(self.rnn_states_critic[1])[:max_steps+1]
@@ -555,7 +565,7 @@ class SharedReplayBuffer(object):
                 # squeezed_rnn_states = self.rnn_states[index].squeeze()
                 # temp_rnn_states.append(squeezed_rnn_states[list_of_active_agents[i][0], list_of_active_agents[i][1]])
                 if self.use_rnn:
-                    if self.rnn_type == 'LSTM' or 'Mixed' in self.rnn_type:
+                    if self._rnn_uses_tuple_state:
                         squeezed_rnn_states_critic = (
                             self.rnn_states_critic[0][index].squeeze(),
                             self.rnn_states_critic[1][index].squeeze()
@@ -579,7 +589,7 @@ class SharedReplayBuffer(object):
             if self.available_actions is not None:
                 ordered_available_actions[step][self.was_agent_active[step]] = np.array(temp_available_actions)
             if self.use_rnn:
-                if self.rnn_type == 'LSTM' or 'Mixed' in self.rnn_type:
+                if self._rnn_uses_tuple_state:
                     ordered_rnn_states_critic[0][step][self.was_agent_active[step]] = np.array([x[0] for x in temp_rnn_states_critic])
                     ordered_rnn_states_critic[1][step][self.was_agent_active[step]] = np.array([x[1] for x in temp_rnn_states_critic])
                 else:
@@ -620,7 +630,7 @@ class SharedReplayBuffer(object):
             available_actions = ordered_available_actions[:max_steps].reshape(-1, *ordered_available_actions.shape[2:])
         
         if self.use_rnn:
-            if self.rnn_type == 'LSTM' or 'Mixed' in self.rnn_type:
+            if self._rnn_uses_tuple_state:
                 rnn_states_critic = (
                     ordered_rnn_states_critic[0][:max_steps].reshape(-1, *ordered_rnn_states_critic[0].shape[2:]),
                     ordered_rnn_states_critic[1][:max_steps].reshape(-1, *ordered_rnn_states_critic[1].shape[2:])
@@ -656,7 +666,7 @@ class SharedReplayBuffer(object):
         if self.available_actions is not None:
             pruned_available_actions = np.delete(available_actions, pruning_indices, axis=0)
         if self.use_rnn:
-            if self.rnn_type == 'LSTM' or 'Mixed' in self.rnn_type:
+            if self._rnn_uses_tuple_state:
                 pruned_rnn_states_critic = (
                     np.delete(rnn_states_critic[0], pruning_indices, axis=0),
                     np.delete(rnn_states_critic[1], pruning_indices, axis=0)
@@ -704,7 +714,7 @@ class SharedReplayBuffer(object):
             reordered_available_actions = np.array([row[perm] for row, perm in zip(pruned_available_actions, permutations)])
 
         if self.use_rnn:
-            if self.rnn_type == 'LSTM' or 'Mixed' in self.rnn_type:
+            if self._rnn_uses_tuple_state:
                 reordered_rnn_states_critic = (
                     np.array([row[perm] for row, perm in zip(pruned_rnn_states_critic[0], permutations)]),
                     np.array([row[perm] for row, perm in zip(pruned_rnn_states_critic[1], permutations)])
@@ -763,7 +773,7 @@ class SharedReplayBuffer(object):
                 available_actions_batch = None
             
             if self.use_rnn:
-                if self.rnn_type == 'LSTM' or 'Mixed' in self.rnn_type:
+                if self._rnn_uses_tuple_state:
                     rnn_states_batch = None
                     rnn_states_critic_batch = (
                         reordered_rnn_states_critic[0][indices].reshape(-1, *reordered_rnn_states_critic[0].shape[2:]),

@@ -627,6 +627,12 @@ class AsynchronousClassBasedLiquidMultiAgentTransformer(nn.Module):
                                self.action_type, dec_actor=dec_actor, share_actor=share_actor, use_classbased_action=use_classbased_action, use_graph_attention=use_graph_attention)
         self.to(device)
 
+    @property
+    def _rnn_uses_tuple_state(self):
+        """Whether the recurrent state is an ``(h, c)`` tuple (LSTM / Mixed types)
+        rather than a single array (GRU / CfC / NCP)."""
+        return self.rnn_type == 'LSTM' or 'Mixed' in self.rnn_type
+
     def zero_std(self):
         if self.action_type != 'Discrete':
             self.decoder.zero_std(self.device)
@@ -654,13 +660,13 @@ class AsynchronousClassBasedLiquidMultiAgentTransformer(nn.Module):
         state = check(state).to(**self.tpdv)
         action = check(action).to(**self.tpdv)
         if rnn_states_actor is not None:
-            if (self.rnn_type == 'LSTM' or 'Mixed' in self.rnn_type):
+            if (self._rnn_uses_tuple_state):
                 rnn_states_actor = (check(rnn_states_actor[0]).to(**self.tpdv), check(rnn_states_actor[1]).to(**self.tpdv))
                 rnn_states_actor = torch.stack(rnn_states_actor, dim=1)
             else:
                 rnn_states_actor = check(rnn_states_actor).to(**self.tpdv)
         if rnn_states_critic is not None:
-            if (self.rnn_type == 'LSTM' or 'Mixed' in self.rnn_type):
+            if (self._rnn_uses_tuple_state):
                 rnn_states_critic = (check(rnn_states_critic[0]).to(**self.tpdv), check(rnn_states_critic[1]).to(**self.tpdv))
                 rnn_states_critic = torch.stack(rnn_states_critic, dim=1)
             else:
@@ -730,7 +736,7 @@ class AsynchronousClassBasedLiquidMultiAgentTransformer(nn.Module):
         if available_actions is not None:
             available_actions = check(available_actions).to(**self.tpdv)
         if rnn_states_critic is not None:
-            if self.use_rnn and (self.rnn_type == 'LSTM' or 'Mixed' in self.rnn_type):
+            if self.use_rnn and (self._rnn_uses_tuple_state):
                 rnn_states_critic = rnn_states_critic.transpose(1, 2)  # Now shape is (batch, n_agents, 2, n_hidden_r)
                 rnn_states_critic = rnn_states_critic.reshape(-1, 2, self.n_hidden_r)  # Now shape is (batch*n_agents, 2, n_hidden_r)
 

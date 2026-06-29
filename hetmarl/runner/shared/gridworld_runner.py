@@ -263,7 +263,7 @@ class GridWorldRunner(Runner):
                         action_log_probs[active_mask] = async_action_log_probs[active_mask]
 
                         if self.use_rnn:
-                            if self.rnn_type == 'LSTM' or 'Mixed' in self.rnn_type:
+                            if self._rnn_uses_tuple_state:
                                 # rnn_states[0][active_mask] = async_rnn_states[0][active_mask]
                                 # rnn_states[1][active_mask] = async_rnn_states[1][active_mask]
                                 rnn_states_critic[0][active_mask] = async_rnn_states_critic[0][active_mask]
@@ -790,7 +790,19 @@ class GridWorldRunner(Runner):
         self.rnn_type = self.all_args.rnn_type
 
         self.starting_episode = self.all_args.starting_episode
-    
+
+    @property
+    def _rnn_uses_tuple_state(self):
+        """Whether the recurrent state is stored as an ``(h, c)`` tuple.
+
+        True for ``LSTM`` and any ``Mixed*`` rnn_type (which carry an LSTM cell
+        state alongside the liquid/GRU hidden state), False for the single-array
+        types (``GRU`` / ``CfC`` / ``NCP``). Encapsulates the precedence-sensitive
+        ``rnn_type == 'LSTM' or 'Mixed' in rnn_type`` test repeated throughout the
+        runner so the recurrent-state layout is decided in exactly one place.
+        """
+        return self.rnn_type == 'LSTM' or 'Mixed' in self.rnn_type
+
     def init_keys(self):
         """Initialize metric tracking keys"""
         
@@ -1107,7 +1119,7 @@ class GridWorldRunner(Runner):
         returned_values = np.zeros((self.n_rollout_threads, self.num_agents, 1), dtype=np.float32)
         returned_action_log_probs = np.zeros((self.n_rollout_threads, self.num_agents, self.action_shape), dtype=np.float32)
         if self.use_rnn:
-            if self.rnn_type == 'LSTM' or 'Mixed' in self.rnn_type:
+            if self._rnn_uses_tuple_state:
                 # returned_rnn_states_actor = (
                 #     np.zeros((self.n_rollout_threads, self.num_agents, self.recurrent_hidden_size), dtype=np.float32),
                 #     np.zeros((self.n_rollout_threads, self.num_agents, self.recurrent_hidden_size), dtype=np.float32)
@@ -1215,7 +1227,7 @@ class GridWorldRunner(Runner):
                         else:
                             available_actions = None
                         if self.use_rnn:
-                            if self.rnn_type == 'LSTM' or 'Mixed' in self.rnn_type:
+                            if self._rnn_uses_tuple_state:
                                 # rnn_states_actor = (
                                 #     np.zeros_like(self.buffer.rnn_states[0][0][0]),
                                 #     np.zeros_like(self.buffer.rnn_states[1][0][0])
@@ -1240,7 +1252,7 @@ class GridWorldRunner(Runner):
                         if self.use_action_masking:
                             available_actions[0] = self.available_actions[e][agent_id]
                         if self.use_rnn:
-                            if self.rnn_type == 'LSTM' or 'Mixed' in self.rnn_type:
+                            if self._rnn_uses_tuple_state:
                                 # rnn_states_actor[0][0] = self.buffer.rnn_states[0][self.asynch_control.cnt[e,agent_id],e,agent_id]
                                 # rnn_states_actor[1][0] = self.buffer.rnn_states[1][self.asynch_control.cnt[e,agent_id],e,agent_id]
                                 rnn_states_critic[0][0] = self.buffer.rnn_states_critic[0][self.asynch_control.cnt[e,agent_id],e,agent_id]
@@ -1290,7 +1302,7 @@ class GridWorldRunner(Runner):
                 action_log_probs = action_log_probs.reshape(-1, 1, action_log_probs.shape[-1])
                 macro_action = macro_action.reshape(-1, 1, macro_action.shape[-2], macro_action.shape[-1])
                 if self.use_rnn:
-                    if self.rnn_type == 'LSTM' or 'Mixed' in self.rnn_type:
+                    if self._rnn_uses_tuple_state:
                         rnn_states_critic = (
                             rnn_states_critic[0].reshape(-1, 1, rnn_states_critic[0].shape[-1]),
                             rnn_states_critic[1].reshape(-1, 1, rnn_states_critic[1].shape[-1])
@@ -1327,7 +1339,7 @@ class GridWorldRunner(Runner):
                         returned_actions[e][agent_id] = actions[counter][0]
                         returned_action_log_probs[e][agent_id] = action_log_probs[counter][0]
                         if self.use_rnn:
-                            if self.rnn_type == 'LSTM' or 'Mixed' in self.rnn_type:
+                            if self._rnn_uses_tuple_state:
                                 returned_rnn_states_critic[0][e][agent_id] = rnn_states_critic[0][counter][0]
                                 returned_rnn_states_critic[1][e][agent_id] = rnn_states_critic[1][counter][0]
                             else:
@@ -1355,7 +1367,7 @@ class GridWorldRunner(Runner):
                         else:
                             available_actions = None
                         if self.use_rnn:
-                            if self.rnn_type == 'LSTM' or 'Mixed' in self.rnn_type:
+                            if self._rnn_uses_tuple_state:
                                 # rnn_states_actor = (
                                 #     np.zeros_like(self.buffer.rnn_states[0][0][0]),
                                 #     np.zeros_like(self.buffer.rnn_states[1][0][0])
@@ -1377,7 +1389,7 @@ class GridWorldRunner(Runner):
                                 if self.use_action_masking:
                                     available_actions[active_cnt] = self.available_actions[e][agent_id]
                                 if self.use_rnn:
-                                    if self.rnn_type == 'LSTM' or 'Mixed' in self.rnn_type:
+                                    if self._rnn_uses_tuple_state:
                                         # rnn_states_actor[0][active_cnt] = self.buffer.rnn_states[0][self.asynch_control.cnt[e,agent_id],e,agent_id]
                                         # rnn_states_actor[1][active_cnt] = self.buffer.rnn_states[1][self.asynch_control.cnt[e,agent_id],e,agent_id]
                                         rnn_states_critic[0][active_cnt] = self.buffer.rnn_states_critic[0][self.asynch_control.cnt[e,agent_id],e,agent_id]
@@ -1392,7 +1404,7 @@ class GridWorldRunner(Runner):
                                     padded_obs[key][0,-1-inactive_cnt] = self.buffer.all_obs[key][step,e,agent_id]
                                 # print("inactive agent counters are: ", self.asynch_control.cnt[e,agent_id], e, agent_id)
                                 if self.use_rnn:
-                                    if self.rnn_type == 'LSTM' or 'Mixed' in self.rnn_type:
+                                    if self._rnn_uses_tuple_state:
                                         # rnn_states_actor[0][-1-inactive_cnt] = self.buffer.rnn_states[0][self.asynch_control.cnt[e,agent_id],e,agent_id]
                                         # rnn_states_actor[1][-1-inactive_cnt] = self.buffer.rnn_states[1][self.asynch_control.cnt[e,agent_id],e,agent_id]
                                         rnn_states_critic[0][-1-inactive_cnt] = self.buffer.rnn_states_critic[0][self.asynch_control.cnt[e,agent_id],e,agent_id]
@@ -1478,13 +1490,13 @@ class GridWorldRunner(Runner):
                             returned_actions[e, agent_id] = actions[counter, agent_num,:]
                             returned_action_log_probs[e, agent_id] = action_log_probs[counter, agent_num,:]
                             if rnn_states_actor is not None:
-                                if self.rnn_type == 'LSTM' or 'Mixed' in self.rnn_type:
+                                if self._rnn_uses_tuple_state:
                                     returned_rnn_states_actor[0][e,agent_id] = rnn_states_actor[0][counter, agent_num]
                                     returned_rnn_states_actor[1][e,agent_id] = rnn_states_actor[1][counter, agent_num]
                                 else:
                                     returned_rnn_states_actor[e, agent_id] = rnn_states_actor[counter, agent_num]
                             if rnn_states_critic is not None:
-                                if self.rnn_type == 'LSTM' or 'Mixed' in self.rnn_type:
+                                if self._rnn_uses_tuple_state:
                                     returned_rnn_states_critic[0][e, agent_id] = rnn_states_critic[0][counter, agent_num]
                                     returned_rnn_states_critic[1][e, agent_id] = rnn_states_critic[1][counter, agent_num]  
                                 else:
@@ -1684,7 +1696,7 @@ class GridWorldRunner(Runner):
         connected_agent_groups = []
         for e in range(n_threads):
             connected_agent_groups.append(infos[e]['connected_agent_groups'])
-        if self.rnn_type == 'LSTM' or 'Mixed' in self.rnn_type:
+        if self._rnn_uses_tuple_state:
             returned_rnn_states_actor = None
             returned_rnn_states_critic = (
                 np.zeros((n_threads, self.num_agents, self.recurrent_hidden_size), dtype=np.float32),
@@ -1838,7 +1850,7 @@ class GridWorldRunner(Runner):
 
                         available_actions = np.zeros_like(self.available_actions[0])
 
-                        if self.rnn_type == 'LSTM' or 'Mixed' in self.rnn_type:
+                        if self._rnn_uses_tuple_state:
                                 rnn_states_critic = (
                                     np.zeros_like(old_rnn_states_critic[0][0]),
                                     np.zeros_like(old_rnn_states_critic[1][0])
@@ -1851,7 +1863,7 @@ class GridWorldRunner(Runner):
                         for key in obs.keys():
                             padded_obs[key][0,0] = obs[key][e,agent_id]
                         available_actions[0] = self.available_actions[e][agent_id]
-                        if self.rnn_type == 'LSTM' or 'Mixed' in self.rnn_type:
+                        if self._rnn_uses_tuple_state:
                             rnn_states_critic[0][0] = old_rnn_states_critic[0][e, agent_id]
                             rnn_states_critic[1][0] = old_rnn_states_critic[1][e, agent_id]
                         else:
@@ -1924,13 +1936,13 @@ class GridWorldRunner(Runner):
                                 
                         returned_actions[e, agent_id] = actions[counter][0]
                         if rnn_states_actor is not None:
-                            if self.rnn_type == 'LSTM' or 'Mixed' in self.rnn_type:
+                            if self._rnn_uses_tuple_state:
                                 returned_rnn_states_actor[0][e,agent_id] = rnn_states_actor[0][counter][0]
                                 returned_rnn_states_actor[1][e,agent_id] = rnn_states_actor[1][counter][0]
                             else:
                                 returned_rnn_states_actor[e, agent_id] = rnn_states_actor[counter][0]
                         if rnn_states_critic is not None:
-                            if self.rnn_type == 'LSTM' or 'Mixed' in self.rnn_type:
+                            if self._rnn_uses_tuple_state:
                                 returned_rnn_states_critic[0][e, agent_id] = rnn_states_critic[0][counter][0]
                                 returned_rnn_states_critic[1][e, agent_id] = rnn_states_critic[1][counter][0]  
                             else:
@@ -1968,7 +1980,7 @@ class GridWorldRunner(Runner):
                                 available_actions = np.zeros_like(self.available_actions[0])
                             else:
                                 available_actions = None
-                            if self.rnn_type == 'LSTM' or 'Mixed' in self.rnn_type:
+                            if self._rnn_uses_tuple_state:
                                 rnn_states_critic = (
                                     np.zeros_like(old_rnn_states_critic[0][0]),
                                     np.zeros_like(old_rnn_states_critic[1][0])
@@ -1986,7 +1998,7 @@ class GridWorldRunner(Runner):
                                     
                                     if self.use_action_masking:
                                         available_actions[active_cnt] = self.available_actions[e][agent_id]
-                                    if self.rnn_type == 'LSTM' or 'Mixed' in self.rnn_type:
+                                    if self._rnn_uses_tuple_state:
                                         rnn_states_critic[0][active_cnt] = old_rnn_states_critic[0][e][agent_id]
                                         rnn_states_critic[1][active_cnt] = old_rnn_states_critic[1][e][agent_id]
                                     else:
@@ -1996,7 +2008,7 @@ class GridWorldRunner(Runner):
                                 else:
                                     for key in obs.keys():
                                         padded_obs[key][0,-1-inactive_cnt] = obs[key][e][agent_id]
-                                    if self.rnn_type == 'LSTM' or 'Mixed' in self.rnn_type:
+                                    if self._rnn_uses_tuple_state:
                                         rnn_states_critic[0][-1-inactive_cnt] = old_rnn_states_critic[0][e][agent_id]
                                         rnn_states_critic[1][-1-inactive_cnt] = old_rnn_states_critic[1][e][agent_id]
                                     else:
@@ -2067,13 +2079,13 @@ class GridWorldRunner(Runner):
                                 
                                 returned_actions[e, agent_id] = actions[counter, agent_num,:]
                                 if rnn_states_actor is not None:
-                                    if self.rnn_type == 'LSTM' or 'Mixed' in self.rnn_type:
+                                    if self._rnn_uses_tuple_state:
                                         returned_rnn_states_actor[0][e,agent_id] = rnn_states_actor[0][counter, agent_num]
                                         returned_rnn_states_actor[1][e,agent_id] = rnn_states_actor[1][counter, agent_num]
                                     else:
                                         returned_rnn_states_actor[e, agent_id] = rnn_states_actor[counter, agent_num]
                                 if rnn_states_critic is not None:
-                                    if self.rnn_type == 'LSTM' or 'Mixed' in self.rnn_type:
+                                    if self._rnn_uses_tuple_state:
                                         returned_rnn_states_critic[0][e, agent_id] = rnn_states_critic[0][counter, agent_num]
                                         returned_rnn_states_critic[1][e, agent_id] = rnn_states_critic[1][counter, agent_num]
                                     else:
@@ -2098,7 +2110,7 @@ class GridWorldRunner(Runner):
                                         padded_obs[key] = np.zeros_like(obs[key][e])
                                         padded_obs[key] = np.expand_dims(padded_obs[key], axis=0)
                                 available_actions = np.zeros_like(self.available_actions[0])
-                                if self.rnn_type == 'LSTM' or 'Mixed' in self.rnn_type:
+                                if self._rnn_uses_tuple_state:
                                     rnn_states_critic = (
                                         np.zeros_like(old_rnn_states_critic[0][0]),
                                         np.zeros_like(old_rnn_states_critic[1][0])
@@ -2121,7 +2133,7 @@ class GridWorldRunner(Runner):
                                         for key in obs.keys():
                                             padded_obs[key][0,agent_num] = obs[key][e,agent_id]
                                         available_actions[agent_num] = self.available_actions[e][agent_id]
-                                        if self.rnn_type == 'LSTM' or 'Mixed' in self.rnn_type:
+                                        if self._rnn_uses_tuple_state:
                                             rnn_states_critic[0][agent_num] = old_rnn_states_critic[0][e,agent_id]
                                             rnn_states_critic[1][agent_num] = old_rnn_states_critic[1][e,agent_id]
                                         else:
@@ -2131,7 +2143,7 @@ class GridWorldRunner(Runner):
                                     for agent_id in inactive_in_group:
                                         for key in obs.keys():
                                             padded_obs[key][0,agent_num] = obs[key][e,agent_id]
-                                        if self.rnn_type == 'LSTM' or 'Mixed' in self.rnn_type:
+                                        if self._rnn_uses_tuple_state:
                                             rnn_states_critic[0][agent_num] = old_rnn_states_critic[0][e,agent_id]
                                             rnn_states_critic[1][agent_num] = old_rnn_states_critic[1][e,agent_id]
                                         else:
@@ -2218,13 +2230,13 @@ class GridWorldRunner(Runner):
 
                                         returned_actions[e, agent_id] = actions[counter, agent_num,:]
                                         if rnn_states_actor is not None:
-                                            if self.rnn_type == 'LSTM' or 'Mixed' in self.rnn_type:
+                                            if self._rnn_uses_tuple_state:
                                                 returned_rnn_states_actor[0][e, agent_id] = rnn_states_actor[0][counter, agent_num]
                                                 returned_rnn_states_actor[1][e, agent_id] = rnn_states_actor[1][counter, agent_num]
                                             else:
                                                 returned_rnn_states_actor[e, agent_id] = rnn_states_actor[counter, agent_num]
                                         if rnn_states_critic is not None:
-                                            if self.rnn_type == 'LSTM' or 'Mixed' in self.rnn_type:
+                                            if self._rnn_uses_tuple_state:
                                                 returned_rnn_states_critic[0][e, agent_id] = rnn_states_critic[0][counter, agent_num]
                                                 returned_rnn_states_critic[1][e, agent_id] = rnn_states_critic[1][counter, agent_num]
                                             else:
@@ -2561,7 +2573,7 @@ class GridWorldRunner(Runner):
                     self.occupied_each_map[e] = eval_infos[e]['occupied_each_map']
 
             # Initialize RNN states
-            if self.rnn_type == 'LSTM' or 'Mixed' in self.rnn_type:
+            if self._rnn_uses_tuple_state:
                 # self.eval_rnn_states_actor = (
                 #     np.zeros((self.n_eval_rollout_threads, self.num_agents, self.recurrent_hidden_size),dtype=np.float32),
                 #     np.zeros((self.n_eval_rollout_threads, self.num_agents, self.recurrent_hidden_size),dtype=np.float32)
@@ -2744,13 +2756,13 @@ class GridWorldRunner(Runner):
                     else:
                         for (e, a, s) in self.asynch_control.active_agents():
                             if eval_rnn_states_actor is not None:
-                                if self.rnn_type == 'LSTM' or 'Mixed' in self.rnn_type:
+                                if self._rnn_uses_tuple_state:
                                     self.eval_rnn_states_actor[0][e, a] = eval_rnn_states_actor[0][e, a]
                                     self.eval_rnn_states_actor[1][e, a] = eval_rnn_states_actor[1][e, a]
                                 else:
                                     self.eval_rnn_states_actor[e, a] = eval_rnn_states_actor[e, a]
                             if eval_rnn_states_critic is not None:
-                                if self.rnn_type == 'LSTM' or 'Mixed' in self.rnn_type:
+                                if self._rnn_uses_tuple_state:
                                     self.eval_rnn_states_critic[0][e, a] = eval_rnn_states_critic[0][e, a]
                                     self.eval_rnn_states_critic[1][e, a] = eval_rnn_states_critic[1][e, a]
                                 else:
@@ -2895,7 +2907,7 @@ class GridWorldRunner(Runner):
                     self.occupied_each_map[e] = infos[e]['occupied_each_map']
             print("Agent types are: ", self.agent_classes_list)
 
-            if self.rnn_type == 'LSTM' or 'Mixed' in self.rnn_type:
+            if self._rnn_uses_tuple_state:
                 # self.rnn_states_actor = (
                 #     np.zeros((self.n_rollout_threads, self.num_agents, self.recurrent_hidden_size),dtype=np.float32),
                 #     np.zeros((self.n_rollout_threads, self.num_agents, self.recurrent_hidden_size),dtype=np.float32)
@@ -3124,13 +3136,13 @@ class GridWorldRunner(Runner):
                     else:
                         for (e, a, s) in self.asynch_control.active_agents():
                             if rnn_states_actor is not None:
-                                if self.rnn_type == 'LSTM' or 'Mixed' in self.rnn_type:
+                                if self._rnn_uses_tuple_state:
                                     self.rnn_states_actor[0][e, a] = rnn_states_actor[0][e, a]
                                     self.rnn_states_actor[1][e, a] = rnn_states_actor[1][e, a]
                                 else:
                                     self.rnn_states_actor[e, a] = rnn_states_actor[e, a]
                             if rnn_states_critic is not None:
-                                if self.rnn_type == 'LSTM' or 'Mixed' in self.rnn_type:
+                                if self._rnn_uses_tuple_state:
                                     self.rnn_states_critic[0][e, a] = rnn_states_critic[0][e, a]
                                     self.rnn_states_critic[1][e, a] = rnn_states_critic[1][e, a]
                                 else:
