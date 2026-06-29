@@ -63,27 +63,24 @@ class TransformerPolicy:
 
         self.tpdv = dict(dtype=torch.float32, device=device)
 
-        if self.algorithm_name == "macmat":
-            from hetmarl.algorithms.macmat.algorithm.macmat_transformer import AsynchronousClassBasedLiquidMultiAgentTransformer as MACMAT
-        elif self.algorithm_name == "amat":
-            from hetmarl.algorithms.amat.algorithm.amat_transformer import AsynchronousMultiAgentTransformer as AMAT
-        else:
-            raise NotImplementedError
+        from hetmarl.algorithms.registry import get_algorithm_spec
+        algorithm_spec = get_algorithm_spec(self.algorithm_name)
+        Transformer = algorithm_spec.transformer()
 
-        if self.algorithm_name == "macmat":
-            self.transformer = MACMAT(self.share_obs_dim, self.obs_dim, self.act_dim, self.num_agents, n_agent_types, max_num_targets, spawn_hazards=self.spawn_hazards, max_num_hazards=self.max_num_hazards,
+        if algorithm_spec.class_conditioned:
+            # MACMAT core: class-specific action heads + graph attention.
+            self.transformer = Transformer(self.share_obs_dim, self.obs_dim, self.act_dim, self.num_agents, n_agent_types, max_num_targets, spawn_hazards=self.spawn_hazards, max_num_hazards=self.max_num_hazards,
                                 n_block=args.n_block, n_embd=args.n_embd, n_hidden=args.hidden_size, n_hidden_r=args.recurrent_hidden_size, n_embd_vit=args.n_embd_vit, n_head=args.n_head,
-                                use_rnn = args.use_rnn, rnn_type = args.rnn_type, encode_state=args.encode_state, use_classbased_action=args.use_classbased_action, use_graph_attention=args.use_graph_attention, 
+                                use_rnn = args.use_rnn, rnn_type = args.rnn_type, encode_state=args.encode_state, use_classbased_action=args.use_classbased_action, use_graph_attention=args.use_graph_attention,
                                 device=device, action_type=self.action_type, dec_actor=args.dec_actor,
                                 share_actor=args.share_actor)
-        elif self.algorithm_name == "amat":
-            self.transformer = AMAT(self.share_obs_dim, self.obs_dim, self.act_dim, self.num_agents, n_agent_types, max_num_targets, spawn_hazards=self.spawn_hazards, max_num_hazards=self.max_num_hazards,
+        else:
+            # AMAT core: no class-based action / graph-attention arguments.
+            self.transformer = Transformer(self.share_obs_dim, self.obs_dim, self.act_dim, self.num_agents, n_agent_types, max_num_targets, spawn_hazards=self.spawn_hazards, max_num_hazards=self.max_num_hazards,
                                 n_block=args.n_block, n_embd=args.n_embd, n_hidden=args.hidden_size, n_hidden_r=args.recurrent_hidden_size, n_embd_vit=args.n_embd_vit, n_head=args.n_head,
                                 use_rnn = args.use_rnn, rnn_type = args.rnn_type, encode_state=args.encode_state, device=device,
                                 action_type=self.action_type, dec_actor=args.dec_actor,
                                 share_actor=args.share_actor)
-        else:
-            raise NotImplementedError
  
         
         # count the volume of parameters of model

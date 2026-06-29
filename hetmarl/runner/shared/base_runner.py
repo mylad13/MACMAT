@@ -84,17 +84,14 @@ class Runner(object):
                     os.makedirs(self.save_dir)
 
         
-        if self.algorithm_name == "macmat":
-            from hetmarl.algorithms.transformer_policy import TransformerPolicy as Policy
-            from hetmarl.algorithms.macmat_trainer import MACMAT_Trainer as TrainAlgo
-        elif self.algorithm_name == "amat":
-            from hetmarl.algorithms.transformer_policy import TransformerPolicy as Policy
-            from hetmarl.algorithms.macmat_trainer import MACMAT_Trainer as TrainAlgo
-            # from hetmarl.algorithms.amat_trainer import AMATTrainer as TrainAlgo
-        elif "ft" in self.algorithm_name:
-            pass
-        else:
-            raise NotImplementedError
+        from hetmarl.algorithms.registry import get_algorithm_spec, is_frontier_algorithm
+
+        # Frontier-search baselines (ft_*) use no learned policy; every other name
+        # resolves to a registry spec (unknown names raise NotImplementedError).
+        if not is_frontier_algorithm(self.algorithm_name):
+            algorithm_spec = get_algorithm_spec(self.algorithm_name)
+            Policy = algorithm_spec.policy()
+            TrainAlgo = algorithm_spec.trainer()
 
         # share_observation_space = self.envs.share_observation_space[
         #     0] if self.use_centralized_V else self.envs.observation_space[0]
@@ -105,24 +102,17 @@ class Runner(object):
         print("act_space: ", self.envs.action_space)
 
 
-        if "ft" not in self.algorithm_name:
-            # policy network
-            if self.algorithm_name == "macmat" or self.algorithm_name == "amat":
-                self.policy = Policy(self.all_args,
-                                self.envs.observation_space[0],
-                                share_observation_space,
-                                self.envs.action_space[0],
-                                self.num_agents,
-                                self.n_agent_types,
-                                self.max_num_targets,
-                                device=self.device)
-            else:
-                self.policy = Policy(self.all_args,
-                                self.envs.observation_space[0],
-                                share_observation_space,
-                                self.envs.action_space[0],
-                                device=self.device)
-                
+        if not is_frontier_algorithm(self.algorithm_name):
+            # policy network (macmat/amat share the TransformerPolicy signature)
+            self.policy = Policy(self.all_args,
+                            self.envs.observation_space[0],
+                            share_observation_space,
+                            self.envs.action_space[0],
+                            self.num_agents,
+                            self.n_agent_types,
+                            self.max_num_targets,
+                            device=self.device)
+
             if self.model_dir is not None:
                 self.restore(self.model_dir)
 
