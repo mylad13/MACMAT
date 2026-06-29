@@ -852,6 +852,53 @@ class SearchAndRescueEnv(MiniGridEnv):
             return noisy_map
     
 
+    def _init_observation_state(self):
+        """Reset the per-episode observation, target/hazard tracking and pose
+        bookkeeping (the self.* containers consumed while building agent
+        observations). Called once at the start of reset()."""
+        # init local map
+        self.explored_each_map = []
+        self.obstacle_each_map = []
+        self.previous_explored_each_map = []
+        self.agent_local_views = []
+        self.agent_local_obstacles = []
+
+        self.target_found_step = np.nan
+        self.found_switch = 0
+        self.mission_completed = 0
+        self.mission_completed_step = np.nan
+        self.fully_explored = 0
+        self.fully_explored_step = np.nan
+        self.mission_failed = 0
+
+        self.agent_target_dicts = []
+        self.all_target_dict = {}
+        self.agent_targets_reached = []
+        self.all_targets_reached = {}
+        self.n_targets_found = []
+        self.target_rescue_times = []
+
+        self.agent_hazard_dicts = []
+        self.all_hazard_dict = {}
+        self.agent_hazards_reached = []
+        self.all_hazards_reached = {}
+        self.n_hazards_found = []
+        self.agent_cleaning_hazard = {}  # Maps agent_id to hazard object being cleaned
+        self.agent_cleaning_hazard_pos = {}  # Maps agent_id to target position for cleaning
+        self.agent_cleaning_progress = {}  # Maps agent_id to remaining time steps
+
+        # APF repeat penalty.
+        self.ft_goals = [None for _ in range(self.num_agents)]
+        self.apf_penalty = np.zeros((
+            self.num_agents,
+            self.width + 2*self.agent_view_size,
+            self.height + 2*self.agent_view_size
+        ))
+
+        self.agent_dir_cos_sin = np.zeros((self.num_agents, 2))
+        self.agent_theta = np.zeros((self.num_agents))
+        self.distance_traversed = np.zeros((self.num_agents))
+
     def reset(self, seed=None):
         if seed is not None:
             self.random_seed = seed
@@ -909,58 +956,10 @@ class SearchAndRescueEnv(MiniGridEnv):
         self.num_step = 0
         self.episode_n += 1
 
-        # init local map
-        self.explored_each_map = []
-        self.obstacle_each_map = []
-        self.previous_explored_each_map = []
+        self._init_observation_state()
         current_agent_pos = []
-        self.agent_local_views = []
-        self.agent_local_obstacles = []
-        
-        # self.target_found = np.zeros((self.num_agents))
-        # self.is_target_found = 0
-        self.target_found_step = np.nan
-        self.found_switch = 0
-        self.mission_completed = 0
-        self.mission_completed_step = np.nan
-        self.fully_explored = 0
-        self.fully_explored_step = np.nan
-        self.mission_failed = 0
-
-        
-
-        temp_agent_target_dicts = [] # temporary dict
-        self.agent_target_dicts = []
-        self.all_target_dict = {}
-        self.agent_targets_reached = []
-        self.all_targets_reached = {}
-        self.n_targets_found = []
-        self.target_rescue_times = []
-
-        temp_agent_hazard_dicts = [] # temporary dict
-        self.agent_hazard_dicts = []
-        self.all_hazard_dict = {}
-        self.agent_hazards_reached = []
-        self.all_hazards_reached = {}
-        self.n_hazards_found = []
-        self.agent_cleaning_hazard = {}  # Maps agent_id to hazard object being cleaned
-        self.agent_cleaning_hazard_pos = {}  # Maps agent_id to target position for cleaning
-        self.agent_cleaning_progress = {}  # Maps agent_id to remaining time steps
-        
-       
-        # self.paths = [[] for _ in range(self.num_agents)]
-        
-        # APF repeat penalty.
-        self.ft_goals = [None for _ in range(self.num_agents)]
-        self.apf_penalty = np.zeros((
-            self.num_agents,
-            self.width + 2*self.agent_view_size,
-            self.height + 2*self.agent_view_size
-        ))
-
-        self.agent_dir_cos_sin = np.zeros((self.num_agents, 2))
-        self.agent_theta = np.zeros((self.num_agents))
-        self.distance_traversed = np.zeros((self.num_agents))
+        temp_agent_target_dicts = []  # temporary dict
+        temp_agent_hazard_dicts = []  # temporary dict
 
         for i in range(self.num_agents):
             # TODO: Make sure this is consistent with the shared odometry / coordinate frame of the robots
