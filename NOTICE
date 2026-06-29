@@ -1,0 +1,14 @@
+MACMAT
+Copyright 2026 The MACMAT Authors
+
+This product is licensed under the Apache License, Version 2.0 (see LICENSE).
+
+This product includes software developed by third parties, retained under their
+own licenses:
+
+- MiniGrid / gym-minigrid (Apache-2.0) — vendored under
+  hetmarl/envs/gridworld/gym_minigrid/; see hetmarl/envs/gridworld/LICENSE.
+- Neural Circuit Policies, "ncps" (Apache-2.0), by Mathias Lechner et al. —
+  vendored under hetmarl/algorithms/utils/torchncp/; upstream license headers
+  are retained in those files.
+- Set Transformer (Lee et al.) — permutation-invariant set encoding.

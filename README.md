@@ -271,6 +271,9 @@ If you use this code, please cite the accompanying manuscript:
 
 ## 📄 License & Acknowledgements
 
+MACMAT is released under the **Apache License 2.0** (see [`LICENSE`](LICENSE) and
+[`NOTICE`](NOTICE)).
+
 This project builds on several open-source works:
 
 - **MiniGrid / gym-minigrid** — base grid-world environment
