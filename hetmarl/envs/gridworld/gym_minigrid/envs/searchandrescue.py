@@ -16,6 +16,7 @@ from hetmarl.envs.gridworld.frontier.nearest import nearest_goal
 from hetmarl.envs.gridworld.frontier.voronoi import voronoi_goal
 
 from hetmarl.envs.gridworld.gym_minigrid.register import register
+from hetmarl.envs.gridworld.semantics import CellCode
 
 from hetmarl.utils import astar
 from hetmarl.utils.util import get_connected_agents
@@ -1012,9 +1013,9 @@ class SearchAndRescueEnv(MiniGridEnv):
             local_map = np.rot90(obs[i]['image'][:, :, 0].T, 3)
             local_map = np.rot90(local_map, 4-direction) # adjusts local map's angle with the global map
             if self.agent_classes_list[i] == 0 or self.agent_classes_list[i] == 2: # rescuer and cleaner agents
-                local_obstacles = (local_map == 0) | (local_map == 40) | (local_map == 160) | (local_map == 60)| (local_map == 180) 
+                local_obstacles = (local_map == CellCode.UNSEEN) | (local_map == CellCode.WALL) | (local_map == CellCode.OBSTACLE) | (local_map == CellCode.BASE)| (local_map == CellCode.TARGET) 
             elif self.agent_classes_list[i] == 1: # scout agents
-                local_obstacles = (local_map == 0) | (local_map == 40) | (local_map == 160) | (local_map == 60)
+                local_obstacles = (local_map == CellCode.UNSEEN) | (local_map == CellCode.WALL) | (local_map == CellCode.OBSTACLE) | (local_map == CellCode.BASE)
             for j in range(self.num_agents): #adding seen agents to the local view
                 if j == i: # skip self
                     continue
@@ -1038,14 +1039,14 @@ class SearchAndRescueEnv(MiniGridEnv):
                         agent_cell = [dy + V - 1, dx + V//2]
 
                 if agent_cell is not None and local_map[agent_cell[0], agent_cell[1]] != 0 and \
-                      local_map[agent_cell[0], agent_cell[1]] != 180 and \
-                        local_map[agent_cell[0], agent_cell[1]] != 200: # if seen, and not on a target nor a hazard
+                      local_map[agent_cell[0], agent_cell[1]] != CellCode.TARGET and \
+                        local_map[agent_cell[0], agent_cell[1]] != CellCode.HAZARD: # if seen, and not on a target nor a hazard
                     if self.agent_classes_list[j] == 0: # rescuer agents
-                        local_map[agent_cell[0], agent_cell[1]] = 10
+                        local_map[agent_cell[0], agent_cell[1]] = CellCode.AGENT_RESCUER
                     elif self.agent_classes_list[j] == 1: # scout agents
-                        local_map[agent_cell[0], agent_cell[1]] = 11
+                        local_map[agent_cell[0], agent_cell[1]] = CellCode.AGENT_SCOUT
                     elif self.agent_classes_list[j] == 2: # cleaner agents
-                        local_map[agent_cell[0], agent_cell[1]] = 12
+                        local_map[agent_cell[0], agent_cell[1]] = CellCode.AGENT_CLEANER
                     if self.use_agent_obstacle and self.agent_classes_list[i] != 1: # if not a scout agent
                         if self.agent_classes_list[j] == 0 or self.agent_classes_list[j] == 2: # rescuer or cleaner agents
                             local_obstacles[agent_cell[0], agent_cell[1]] = True
@@ -1081,58 +1082,58 @@ class SearchAndRescueEnv(MiniGridEnv):
                         elif direction == 0: # Facing right
                             self.explored_each_map[i][x+pos[0] -
                                                     agent_view_size//2][y+pos[1]] = 1
-                            if local_map[x][y] != 20:
-                                if local_map[x][y] == 180: # target
+                            if local_map[x][y] != CellCode.EMPTY:
+                                if local_map[x][y] == CellCode.TARGET: # target
                                     target_pos = [y+pos[1]-agent_view_size, x+pos[0] - 3*agent_view_size//2]
                                     target_obj = self.grid.get(*target_pos)
                                     temp_agent_target_dicts[i][target_obj] = target_pos
-                                elif local_map[x][y] == 200: # hazard
+                                elif local_map[x][y] == CellCode.HAZARD: # hazard
                                     hazard_pos = [y+pos[1]-agent_view_size, x+pos[0] - 3*agent_view_size//2]
                                     hazard_obj = self.grid.get(*hazard_pos)
                                     temp_agent_hazard_dicts[i][hazard_obj] = hazard_pos
-                                elif local_map[x][y] == 160 or local_map[x][y] == 40:
+                                elif local_map[x][y] == CellCode.OBSTACLE or local_map[x][y] == CellCode.WALL:
                                     self.obstacle_each_map[i][x+pos[0] - agent_view_size//2][y+pos[1]] = 1
                         elif direction == 1: # Facing down
                             self.explored_each_map[i][x+pos[0]][y+pos[1] -
                                                                 agent_view_size//2] = 1
-                            if local_map[x][y] != 20:
-                                if local_map[x][y] == 180:
+                            if local_map[x][y] != CellCode.EMPTY:
+                                if local_map[x][y] == CellCode.TARGET:
                                     target_pos = [y+pos[1]-3*agent_view_size//2, x+pos[0] - agent_view_size]
                                     target_obj = self.grid.get(*target_pos)
                                     temp_agent_target_dicts[i][target_obj] = target_pos
-                                elif local_map[x][y] == 200:
+                                elif local_map[x][y] == CellCode.HAZARD:
                                     hazard_pos = [y+pos[1]-3*agent_view_size//2, x+pos[0] - agent_view_size]
                                     hazard_obj = self.grid.get(*hazard_pos)
                                     temp_agent_hazard_dicts[i][hazard_obj] = hazard_pos
-                                elif local_map[x][y] == 160 or local_map[x][y] == 40:
+                                elif local_map[x][y] == CellCode.OBSTACLE or local_map[x][y] == CellCode.WALL:
                                     self.obstacle_each_map[i][x+pos[0]][y+pos[1] - agent_view_size//2] = 1
                         elif direction == 2: # Facing left
                             self.explored_each_map[i][x+pos[0]-agent_view_size //
                                                     2][y+pos[1]-agent_view_size+1] = 1
-                            if local_map[x][y] != 20:
-                                if local_map[x][y] == 180:
+                            if local_map[x][y] != CellCode.EMPTY:
+                                if local_map[x][y] == CellCode.TARGET:
                                     target_pos = [y+pos[1]-2*agent_view_size+1, x+pos[0] - 3*agent_view_size//2]
                                     target_obj = self.grid.get(*target_pos)
                                     temp_agent_target_dicts[i][target_obj] = target_pos
-                                elif local_map[x][y] == 200:
+                                elif local_map[x][y] == CellCode.HAZARD:
                                     hazard_pos = [y+pos[1]-2*agent_view_size+1, x+pos[0] - 3*agent_view_size//2]
                                     hazard_obj = self.grid.get(*hazard_pos)
                                     temp_agent_hazard_dicts[i][hazard_obj] = hazard_pos
-                                elif local_map[x][y] == 160 or local_map[x][y] == 40:
+                                elif local_map[x][y] == CellCode.OBSTACLE or local_map[x][y] == CellCode.WALL:
                                     self.obstacle_each_map[i][x+pos[0]-agent_view_size // 2][y+pos[1]-agent_view_size+1] = 1
                         elif direction == 3: # Facing up 
                             self.explored_each_map[i][x+pos[0]-agent_view_size +
                                                     1][y+pos[1]-agent_view_size//2] = 1
-                            if local_map[x][y] != 20:
-                                if local_map[x][y] == 180:
+                            if local_map[x][y] != CellCode.EMPTY:
+                                if local_map[x][y] == CellCode.TARGET:
                                     target_pos = [y+pos[1]-3*agent_view_size//2, x+pos[0] - 2*agent_view_size+1]
                                     target_obj = self.grid.get(*target_pos)
                                     temp_agent_target_dicts[i][target_obj] = target_pos
-                                elif local_map[x][y] == 200:
+                                elif local_map[x][y] == CellCode.HAZARD:
                                     hazard_pos = [y+pos[1]-3*agent_view_size//2, x+pos[0] - 2*agent_view_size+1]
                                     hazard_obj = self.grid.get(*hazard_pos)
                                     temp_agent_hazard_dicts[i][hazard_obj] = hazard_pos
-                                elif local_map[x][y] == 160 or local_map[x][y] == 40:
+                                elif local_map[x][y] == CellCode.OBSTACLE or local_map[x][y] == CellCode.WALL:
                                     self.obstacle_each_map[i][x+pos[0]-agent_view_size + 1][y+pos[1]-agent_view_size//2] = 1
 
             # ### 360 degrees view
@@ -1443,9 +1444,9 @@ class SearchAndRescueEnv(MiniGridEnv):
             local_map = np.rot90(local_map, 4-direction) # adjusts local map's angle with the global map
 
             if self.agent_classes_list[i] == 0 or self.agent_classes_list[i] == 2: # rescuer and cleaner agents
-                local_obstacles = (local_map == 0) | (local_map == 40) | (local_map == 160) | (local_map == 180) | (local_map == 60)
+                local_obstacles = (local_map == CellCode.UNSEEN) | (local_map == CellCode.WALL) | (local_map == CellCode.OBSTACLE) | (local_map == CellCode.TARGET) | (local_map == CellCode.BASE)
             elif self.agent_classes_list[i] == 1: # scout agents
-                local_obstacles = (local_map == 0) | (local_map == 40) | (local_map == 160) | (local_map == 60)
+                local_obstacles = (local_map == CellCode.UNSEEN) | (local_map == CellCode.WALL) | (local_map == CellCode.OBSTACLE) | (local_map == CellCode.BASE)
             
             for j in range(self.num_agents): #adding seen agents to the local view
                 if j == i: # if agent is dead, skip
@@ -1471,14 +1472,14 @@ class SearchAndRescueEnv(MiniGridEnv):
                         agent_cell = [dy + V - 1, dx + V//2]
 
                 if agent_cell is not None and local_map[agent_cell[0], agent_cell[1]] != 0 and \
-                      local_map[agent_cell[0], agent_cell[1]] != 180 and \
-                        local_map[agent_cell[0], agent_cell[1]] != 200: # if seen, and not on a target nor a hazard
+                      local_map[agent_cell[0], agent_cell[1]] != CellCode.TARGET and \
+                        local_map[agent_cell[0], agent_cell[1]] != CellCode.HAZARD: # if seen, and not on a target nor a hazard
                     if self.agent_classes_list[j] == 0: # rescuer agents
-                        local_map[agent_cell[0], agent_cell[1]] = 10
+                        local_map[agent_cell[0], agent_cell[1]] = CellCode.AGENT_RESCUER
                     elif self.agent_classes_list[j] == 1: # scout agents
-                        local_map[agent_cell[0], agent_cell[1]] = 11
+                        local_map[agent_cell[0], agent_cell[1]] = CellCode.AGENT_SCOUT
                     elif self.agent_classes_list[j] == 2: # cleaner agents
-                        local_map[agent_cell[0], agent_cell[1]] = 12
+                        local_map[agent_cell[0], agent_cell[1]] = CellCode.AGENT_CLEANER
                     if self.use_agent_obstacle and self.agent_classes_list[i] != 1: # if not a scout agent
                         if self.agent_classes_list[j] == 0 or self.agent_classes_list[j] == 2: # rescuer or cleaner agents
                             local_obstacles[agent_cell[0], agent_cell[1]] = True
@@ -1554,16 +1555,16 @@ class SearchAndRescueEnv(MiniGridEnv):
                             self.explored_each_map_t[i][x+pos[0] -
                                                     agent_view_size//2][y+pos[1]] = 1
                             cell_pos = [y+pos[1]-agent_view_size, x+pos[0] - 3*agent_view_size//2]
-                            if local_map[x][y] != 20:
-                                if local_map[x][y] == 180:
+                            if local_map[x][y] != CellCode.EMPTY:
+                                if local_map[x][y] == CellCode.TARGET:
                                     target_pos = cell_pos
                                     target_obj = self.grid.get(*target_pos)
                                     temp_agent_target_dicts[i][target_obj] = target_pos
-                                elif local_map[x][y] == 200:
+                                elif local_map[x][y] == CellCode.HAZARD:
                                     hazard_pos = cell_pos
                                     hazard_obj = self.grid.get(*hazard_pos)
                                     temp_agent_hazard_dicts[i][hazard_obj] = hazard_pos
-                                elif local_map[x][y] == 160 or local_map[x][y] == 40:
+                                elif local_map[x][y] == CellCode.OBSTACLE or local_map[x][y] == CellCode.WALL:
                                     self.obstacle_each_map_t[i][x+pos[0] - agent_view_size//2][y+pos[1]] = 1
                             else:
                                 for known_target in list(self.agent_target_dicts[i].keys()):
@@ -1584,16 +1585,16 @@ class SearchAndRescueEnv(MiniGridEnv):
                             self.explored_each_map_t[i][x+pos[0]][y+pos[1] -
                                                                 agent_view_size//2] = 1
                             cell_pos = [y+pos[1]-3*agent_view_size//2, x+pos[0] - agent_view_size]
-                            if local_map[x][y] != 20:
-                                if local_map[x][y] == 180:
+                            if local_map[x][y] != CellCode.EMPTY:
+                                if local_map[x][y] == CellCode.TARGET:
                                     target_pos = cell_pos
                                     target_obj = self.grid.get(*target_pos)
                                     temp_agent_target_dicts[i][target_obj] = target_pos
-                                elif local_map[x][y] == 200:
+                                elif local_map[x][y] == CellCode.HAZARD:
                                     hazard_pos = cell_pos
                                     hazard_obj = self.grid.get(*hazard_pos)
                                     temp_agent_hazard_dicts[i][hazard_obj] = hazard_pos
-                                elif local_map[x][y] == 160 or local_map[x][y] == 40:
+                                elif local_map[x][y] == CellCode.OBSTACLE or local_map[x][y] == CellCode.WALL:
                                     self.obstacle_each_map_t[i][x+pos[0]][y+pos[1] - agent_view_size//2] = 1
                             else:
                                 for known_target in list(self.agent_target_dicts[i].keys()):
@@ -1605,16 +1606,16 @@ class SearchAndRescueEnv(MiniGridEnv):
                             self.explored_each_map_t[i][x+pos[0]-agent_view_size //
                                                     2][y+pos[1]-agent_view_size+1] = 1
                             cell_pos = [y+pos[1]-2*agent_view_size+1, x+pos[0] - 3*agent_view_size//2]
-                            if local_map[x][y] != 20:
-                                if local_map[x][y] == 180:
+                            if local_map[x][y] != CellCode.EMPTY:
+                                if local_map[x][y] == CellCode.TARGET:
                                     target_pos = cell_pos
                                     target_obj = self.grid.get(*target_pos)
                                     temp_agent_target_dicts[i][target_obj] = target_pos
-                                elif local_map[x][y] == 200:
+                                elif local_map[x][y] == CellCode.HAZARD:
                                     hazard_pos = cell_pos
                                     hazard_obj = self.grid.get(*hazard_pos)
                                     temp_agent_hazard_dicts[i][hazard_obj] = hazard_pos
-                                elif local_map[x][y] == 160 or local_map[x][y] == 40:
+                                elif local_map[x][y] == CellCode.OBSTACLE or local_map[x][y] == CellCode.WALL:
                                     self.obstacle_each_map_t[i][x+pos[0]-agent_view_size // 2][y+pos[1]-agent_view_size+1] = 1
                             else:
                                 for known_target in list(self.agent_target_dicts[i].keys()):
@@ -1626,16 +1627,16 @@ class SearchAndRescueEnv(MiniGridEnv):
                             self.explored_each_map_t[i][x+pos[0]-agent_view_size +
                                                     1][y+pos[1]-agent_view_size//2] = 1
                             cell_pos = [y+pos[1]-3*agent_view_size//2, x+pos[0] - 2*agent_view_size+1]
-                            if local_map[x][y] != 20:
-                                if local_map[x][y] == 180:
+                            if local_map[x][y] != CellCode.EMPTY:
+                                if local_map[x][y] == CellCode.TARGET:
                                     target_pos = cell_pos
                                     target_obj = self.grid.get(*target_pos)
                                     temp_agent_target_dicts[i][target_obj] = target_pos
-                                elif local_map[x][y] == 200:
+                                elif local_map[x][y] == CellCode.HAZARD:
                                     hazard_pos = cell_pos
                                     hazard_obj = self.grid.get(*hazard_pos)
                                     temp_agent_hazard_dicts[i][hazard_obj] = hazard_pos
-                                elif local_map[x][y] == 160 or local_map[x][y] == 40:
+                                elif local_map[x][y] == CellCode.OBSTACLE or local_map[x][y] == CellCode.WALL:
                                     self.obstacle_each_map_t[i][x+pos[0]-agent_view_size + 1][y+pos[1]-agent_view_size//2] = 1
                             else:
                                 for known_target in list(self.agent_target_dicts[i].keys()):
@@ -2053,9 +2054,9 @@ class SearchAndRescueEnv(MiniGridEnv):
                 # print(f"Agent {agent_id} local map: ", local_map)
                 # local_map = np.rot90(local_map, self.agent_dir[agent_id] + 3) # adjusts local map's angle with the global map
                 if self.agent_classes_list[agent_id] == 0 or self.agent_classes_list[agent_id] == 2: # rescuer and cleaner agents
-                    obstacle = ((local_map == 40) | (local_map == 160) | (local_map == 60) | (local_map == 180) | (local_map == 10) | (local_map == 12)).astype(np.int32)
+                    obstacle = ((local_map == CellCode.WALL) | (local_map == CellCode.OBSTACLE) | (local_map == CellCode.BASE) | (local_map == CellCode.TARGET) | (local_map == CellCode.AGENT_RESCUER) | (local_map == CellCode.AGENT_CLEANER)).astype(np.int32)
                 elif self.agent_classes_list[agent_id] == 1: # scout agents
-                    obstacle = ((local_map == 40) | (local_map == 160) | (local_map == 60)).astype(np.int32)
+                    obstacle = ((local_map == CellCode.WALL) | (local_map == CellCode.OBSTACLE) | (local_map == CellCode.BASE)).astype(np.int32)
 
 
                 # print(f"Agent {agent_id} obstacle: ", obstacle)

@@ -11,6 +11,7 @@ import cv2
 from collections import defaultdict, deque
 from hetmarl.utils.util import update_linear_schedule, get_shape_from_act_space, get_shape_from_obs_space, AsynchControl
 from hetmarl.runner.shared.base_runner import Runner
+from hetmarl.envs.gridworld.semantics import CellCode
 import torch.nn as nn
 
 import hydra
@@ -539,19 +540,19 @@ class GridWorldRunner(Runner):
                             # Channel 0: visible/not_visible, Channel 1: walls and obstacles, Channel 2: doors, Channel 3: targets, Channel 4-6: other agents
                             if agent_local_view[i,j] != 0: # visible
                                 obs['local_agent_view'][e, agent_id, 0][i,j] = 1
-                                if agent_local_view[i,j] == 40 or agent_local_view[i,j] == 160: # Walls and obstacles
+                                if agent_local_view[i,j] == CellCode.WALL or agent_local_view[i,j] == CellCode.OBSTACLE: # Walls and obstacles
                                     obs['local_agent_view'][e, agent_id, 1][i,j] = 1
-                                elif agent_local_view[i,j] == 80: # Doors
+                                elif agent_local_view[i,j] == CellCode.DOOR: # Doors
                                     obs['local_agent_view'][e, agent_id, 2][i,j] = 1
-                                elif agent_local_view[i,j] == 180: # Targets
+                                elif agent_local_view[i,j] == CellCode.TARGET: # Targets
                                     obs['local_agent_view'][e, agent_id, 3][i,j] = 1
-                                elif agent_local_view[i,j] == 10: # rescuer agents
+                                elif agent_local_view[i,j] == CellCode.AGENT_RESCUER: # rescuer agents
                                     obs['local_agent_view'][e, agent_id, 4][i,j] = 1
-                                elif agent_local_view[i,j] == 11: # scout agents
+                                elif agent_local_view[i,j] == CellCode.AGENT_SCOUT: # scout agents
                                     obs['local_agent_view'][e, agent_id, 5][i,j] = 1
-                                elif self.spawn_hazards and agent_local_view[i,j] == 12: # cleaner agents
+                                elif self.spawn_hazards and agent_local_view[i,j] == CellCode.AGENT_CLEANER: # cleaner agents
                                     obs['local_agent_view'][e, agent_id, 6][i,j] = 1
-                                elif self.spawn_hazards and agent_local_view[i,j] == 200: # Hazards
+                                elif self.spawn_hazards and agent_local_view[i,j] == CellCode.HAZARD: # Hazards
                                     obs['local_agent_view'][e, agent_id, 7][i,j] = 1
                     if self.agent_classes_list[e, agent_id] == 0:
                         obs['local_agent_view'][e, agent_id, 4][self.agent_view_size-1, self.agent_view_size//2] = 1
