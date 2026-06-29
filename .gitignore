@@ -3,3 +3,12 @@ hetmarl/scripts/outputs
 
 # Python bytecode
 *.pyc
+__pycache__/
+
+# Build / packaging artifacts
+*.egg-info/
+build/
+dist/
+
+# Test / tooling caches
+.pytest_cache/
